@@ -50,7 +50,9 @@ static int bus_check_and_subscribe_events(void* arg);
 static int sta_connectivity_selfheal(void* arg);
 static int run_greylist_event(void *arg);
 static int run_analytics_event(void* arg);
-
+//DEMO 
+static int client_connect_selfheal(void* arg);
+void schedule_task_C();
 static int switch_dfs_channel(void *arg);
 void start_wifi_sched_timer(unsigned int, struct wifi_ctrl *ctrl, wifi_scheduler_type_t type);
 void deinit_wifi_ctrl(wifi_ctrl_t *ctrl)
@@ -77,6 +79,33 @@ void deinit_wifi_ctrl(wifi_ctrl_t *ctrl)
     pthread_cond_destroy(&ctrl->cond);
     pthread_mutex_destroy(&ctrl->events_bus_data.events_bus_lock);
 }
+//DEMO
+static int client_connect_selfheal(void* arg)
+{
+    if (wifi_addApAclDevice(10, "AA:BB:CC:DD:EE:FF") != RETURN_OK) 
+    {
+        wifi_util_dbg_print(WIFI_MGR, "%s:%d: POORNA SIMULATOR wifi_addApAclDevice failed VAP 10.\n", __func__, __LINE__);
+        return -1;
+    }
+    wifi_util_dbg_print(WIFI_MGR, "%s:%d: POORNA SIMULATOR wifi_addApAclDevice passed VAP 10.\n", __func__, __LINE__);
+     
+    if (wifi_addApAclDevice(6, "A1:B1:C1:D1:E1:F1") != RETURN_OK) 
+    {
+        wifi_util_dbg_print(WIFI_MGR, "%s:%d: POORNA SIMULATOR wifi_addApAclDevice failed FOR VAP 6.\n", __func__, __LINE__);
+        return -1;
+    }
+    wifi_util_dbg_print(WIFI_MGR, "%s:%d: POORNA SIMULATOR wifi_addApAclDevice passed VAP 6.\n", __func__, __LINE__);
+    
+    return 0;
+}
+
+void schedule_task_C() {
+    wifi_ctrl_t *ctrl = NULL;
+    int ret = scheduler_add_timer_task(ctrl->sched, false, NULL, client_connect_selfheal, NULL, 300000, 0, false);
+    wifi_util_dbg_print(WIFI_MGR, "%s:%d: POORNA SIMULATOR scheduler_add_timer_task returned %d \n", __func__, __LINE__, ret);
+}
+
+
 
 static int wifi_radio_set_enable(bool status)
 {
