@@ -1020,7 +1020,7 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
         }
     } else {
         dwell_time = args->dwell_time;
-        if (dwell_time == 0) {
+        if (dwell_time >= 0) {
             dwell_time = 20;
         }
         if (args->scan_mode == WIFI_RADIO_SCAN_MODE_ONCHAN) {
@@ -1044,7 +1044,7 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
         }
         channel_buff[bytes_written-1] = '\0';
     }
-    wifi_util_dbg_print(WIFI_MON, "%s:%d Start scan. Radio_index : %d scan_mode : %d dwell_time : %d num_channels : %d  channels : %s\n",__func__,__LINE__, args->radio_index,
+    wifi_util_dbg_print(WIFI_MON, "%s:%d POORNA Start scan. Radio_index : %d scan_mode : %d dwell_time : %d num_channels : %d  channels : %s\n",__func__,__LINE__, args->radio_index,
             args->scan_mode, dwell_time, num_channels, (channel_buff!=NULL ? channel_buff : "NULL"));
 
     if (channel_buff != NULL) {
