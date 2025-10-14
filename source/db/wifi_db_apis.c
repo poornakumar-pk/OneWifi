@@ -4584,7 +4584,7 @@ void wifidb_init_rfc_config_default(wifi_rfc_dml_parameters_t *config)
     rfc_config.levl_enabled_rfc = false;
     rfc_config.memwraptool_app_rfc = true;
 #if defined(_XB8_PRODUCT_REQ_) || defined(_SR213_PRODUCT_REQ_) || defined(_XER5_PRODUCT_REQ_) || \
-    defined (_SCER11BEL_PRODUCT_REQ_) || defined(_SCXF11BFL_PRODUCT_REQ_)
+    defined (_SCER11BEL_PRODUCT_REQ_) || defined(_SCXF11BFL_PRODUCT_REQ_) || defined(_WNXL11BWL_PRODUCT_REQ_)
     rfc_config.wpa3_rfc = true;
 #else
     rfc_config.wpa3_rfc = false;
