@@ -157,7 +157,7 @@ extern void* bus_handle;
 //#define UPLOAD_AP_TELEMETRY_INTERVAL_MS 24*60*60*1000 // 24 Hours
 
 //#define NEIGHBOR_SCAN_RESULT_INTERVAL 5000 //5 seconds
-#define Min_LogInterval 300 //5 minutes
+#define Min_LogInterval 60 //1 minute
 #define Max_LogInterval 3600 //60 minutes
 #define Min_Chan_Util_LogInterval 5 //5 seconds
 
@@ -1052,6 +1052,7 @@ int get_sta_stats_info (assoc_dev_data_t *assoc_dev_data) {
     assoc_dev_data->dev_stats.cli_MaxRSSI = sta_data->dev_stats.cli_MaxRSSI;
     assoc_dev_data->dev_stats.cli_Disassociations = sta_data->dev_stats.cli_Disassociations;
     assoc_dev_data->dev_stats.cli_AuthenticationFailures = sta_data->dev_stats.cli_AuthenticationFailures;
+    assoc_dev_data->dev_stats.cli_activeNumSpatialStreams = sta_data->dev_stats.cli_activeNumSpatialStreams;
     assoc_dev_data->dev_stats.cli_PacketsSent = sta_data->dev_stats.cli_PacketsSent;
     assoc_dev_data->dev_stats.cli_PacketsReceived = sta_data->dev_stats.cli_PacketsReceived;
     assoc_dev_data->dev_stats.cli_ErrorsSent = sta_data->dev_stats.cli_ErrorsSent;
@@ -3767,10 +3768,10 @@ long get_sys_uptime()
      gettimeofday(&polling_time, NULL);
 
      if ((fp = fopen("/tmp/upload", "r")) == NULL) {
-     /* Minimum LOG Interval we can set is 300 sec, just verify every 5 mins any change in the LogInterval
+     /* Minimum LOG Interval we can set is 60 sec, just verify every 1 min any change in the LogInterval
         if any change in log_interval do the calculation and dump the VAP status */
           time_gap = polling_time.tv_sec - lastpolledtime;
-          if ( time_gap >= 300 )
+          if ( time_gap >= 60 )
           {
                logInterval=readLogInterval();
                lastpolledtime = polling_time.tv_sec;

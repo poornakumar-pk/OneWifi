@@ -1073,6 +1073,20 @@ webconfig_error_t encode_radius_object(const wifi_radius_settings_t *radius_info
         cJSON_AddStringToObject(radius, "SecondaryRadiusSecret", radius_info->s_key);
     }
 
+    cJSON_AddNumberToObject(radius, "EAPType", radius_info->eap_type);
+    cJSON_AddNumberToObject(radius, "Phase2Auth", radius_info->phase2);
+    if (strlen((char *)radius_info->identity) == 0) {
+        cJSON_AddStringToObject(radius, "Identity", "username_empty");
+    } else {
+        cJSON_AddStringToObject(radius, "Identity", radius_info->identity);
+    }
+
+    if (strlen((char *)radius_info->key) == 0) {
+        cJSON_AddStringToObject(radius, "Key", INVALID_KEY);
+    } else {
+        cJSON_AddStringToObject(radius, "Key", radius_info->key);
+    }
+    
     memset(str, 0, sizeof(str));
     getIpStringFromAdrress(str, &radius_info->dasip);
     cJSON_AddStringToObject(radius, "DasServerIPAddr", str);
@@ -1620,6 +1634,9 @@ webconfig_error_t encode_mesh_sta_object(const wifi_vap_info_t *vap_info,
 
     // Enabled
     cJSON_AddBoolToObject(vap_obj, "Enabled", vap_info->u.sta_info.enabled);
+    
+    // Ignite Status
+    cJSON_AddBoolToObject(vap_obj, "Ignite_Enabled", vap_info->u.sta_info.ignite_enabled);
 
     //ConnectStatus
     if (vap_info->u.sta_info.conn_status == wifi_connection_status_connected) {
@@ -1786,6 +1803,7 @@ webconfig_error_t encode_associated_client_object(rdk_wifi_vap_info_t *rdk_vap_i
                 cJSON_AddNumberToObject(obj_assoc_client, "MaxRSSI", assoc_dev_data->dev_stats.cli_MaxRSSI);
                 cJSON_AddNumberToObject(obj_assoc_client, "Disassociations", assoc_dev_data->dev_stats.cli_Disassociations);
                 cJSON_AddNumberToObject(obj_assoc_client, "AuthenticationFailures", assoc_dev_data->dev_stats.cli_AuthenticationFailures);
+                cJSON_AddNumberToObject(obj_assoc_client, "ActiveNumSpatialStreams", assoc_dev_data->dev_stats.cli_activeNumSpatialStreams);
                 cJSON_AddNumberToObject(obj_assoc_client, "PacketsSent", assoc_dev_data->dev_stats.cli_PacketsSent);
                 cJSON_AddNumberToObject(obj_assoc_client, "PacketsReceived", assoc_dev_data->dev_stats.cli_PacketsReceived);
                 cJSON_AddNumberToObject(obj_assoc_client, "ErrorsSent", assoc_dev_data->dev_stats.cli_ErrorsSent);
