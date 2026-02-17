@@ -854,7 +854,10 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
     int new_num_channels = 0;
     int updated_channels[MAX_CHANNELS] = {0};
     wifi_mon_stats_args_t *args = NULL;
-
+	wifi_util_dbg_print(WIFI_MON,
+                    "%s:%d  POORNA | Entered "
+                    "index %d\n",
+                    __func__, __LINE__, args->radio_index);
     if (c_elem == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d input arguments are NULL args : %p\n", __func__,
             __LINE__, args);
@@ -930,19 +933,22 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
                 args->radio_index);
             return RETURN_ERR;
         }
+		wifi_util_dbg_print(WIFI_MON,
+                    "%s:%d  POORNA |  "
+                    "index %d\n",
+                    __func__, __LINE__, args->radio_index);
         // dont run offchan scan if device current using dfs channel
         if (radioOperation->band == WIFI_FREQUENCY_5L_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5H_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5_BAND) {
-            if (is_5g_20M_channel_in_dfs(radioOperation->channel) ||
-                radioOperation->channelWidth == WIFI_CHANNELBANDWIDTH_160MHZ) {
+
                 wifi_util_dbg_print(WIFI_MON,
-                    "%s:%d  full channel scan only executed on current channel duo to DFS channel "
+                    "%s:%d POORNA full channel scan only executed on current channel duo to DFS channel "
                     "in use for radio index %d\n",
                     __func__, __LINE__, args->radio_index);
                 num_channels = 1;
                 channels[0] = radioOperation->channel;
-            }
+            
         }
 
     } else if (args->scan_mode == WIFI_RADIO_SCAN_MODE_SELECT_CHANNELS) {
@@ -958,6 +964,10 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
             return RETURN_ERR;
         }
         // dont run offchan scan if device current using dfs channel
+		wifi_util_dbg_print(WIFI_MON,
+                    "%s:%d  POORNA | Before if condition ---dont run offchan scan"
+                    "index %d\n",
+                    __func__, __LINE__, args->radio_index);
         if (radioOperation->band == WIFI_FREQUENCY_5L_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5H_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5_BAND) {
@@ -967,6 +977,10 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
                     __func__, __LINE__, args->radio_index);
                 return RETURN_OK;
         }
+		wifi_util_dbg_print(WIFI_MON,
+                    "%s:%d  POORNA |  "
+                    "index %d\n",
+                    __func__, __LINE__, args->radio_index);
         // Fill on-channel scan list
         if (get_on_channel_scan_list(radioOperation->band, radioOperation->channelWidth,
 		radioOperation->channel, on_chan_list, &onchan_num_channels) != 0) {
