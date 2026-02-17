@@ -855,55 +855,60 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
     int updated_channels[MAX_CHANNELS] = {0};
     wifi_mon_stats_args_t *args = NULL;
 
+    // OCS DEBUG: Entered execute_radio_channel_api  
+    wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] -> Enter execute_radio_channel_api");
+
     if (c_elem == NULL) {
-        wifi_util_error_print(WIFI_MON, "%s:%d input arguments are NULL args : %p\n", __func__,
-            __LINE__, args);
+        wifi_util_error_print(WIFI_MON, "[OCS DEBUG] NULL c_elem: %s:%d input arguments are NULL args : %p\n", __func__, __LINE__, args);
         return RETURN_ERR;
     }
-
     args = c_elem->args;
     if (args == NULL) {
-        wifi_util_error_print(WIFI_MON, "%s:%d collector arguments are null : %p\n", __func__,
-            __LINE__, args);
+        wifi_util_error_print(WIFI_MON, "[OCS DEBUG] NULL args: %s:%d collector arguments are null : %p\n", __func__, __LINE__, args);
         return RETURN_ERR;
     }
-
+    wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] Args: radio_index=%d scan_mode=%d", args->radio_index, args->scan_mode);
     if (mon_data->radio_presence[args->radio_index] == false) {
-        wifi_util_info_print(WIFI_MON, "%s:%d radio_presence is false for radio : %d\n", __func__,
-            __LINE__, args->radio_index);
+        wifi_util_info_print(WIFI_MON, "[OCS DEBUG] radio_presence is false for radio : %d (early exit)\n", args->radio_index);
         return RETURN_OK;
     }
-
     radioOperation = getRadioOperationParam(args->radio_index);
     if (radioOperation == NULL) {
-        wifi_util_error_print(WIFI_MON, "%s:%d NULL radioOperation pointer for radio : %d\n",
-            __func__, __LINE__, args->radio_index);
+        wifi_util_error_print(WIFI_MON, "[OCS DEBUG] getRadioOperationParam NULL pointer for radio : %d\n", args->radio_index);
         return RETURN_ERR;
     }
 
+    // --- OCS 5GHz DFS ROOT CAUSE PRINTS BEGIN ---
+    wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] scan_mode=%d band=%d channel=%d channelWidth=%d", 
+        args->scan_mode, radioOperation->band, radioOperation->channel, radioOperation->channelWidth);
+
+    // -- ONCHAN --
     if (args->scan_mode == WIFI_RADIO_SCAN_MODE_ONCHAN) {
+        wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] Entering ONCHAN scan branch");
         if (get_on_channel_scan_list(radioOperation->band, radioOperation->channelWidth,
                 radioOperation->channel, channels, &num_channels) != 0) {
+            wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] get_on_channel_scan_list failed; fallback to single channel");
             num_channels = 1;
             channels[0] = radioOperation->channel;
         } else {
+            wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] get_on_channel_scan_list OK, got num_channels=%d", num_channels);
+
             if (get_non_operational_channel_list(args->radio_index, (unsigned int *)channels,
                     num_channels, nop_chan_list, &nop_chan_count, mon_data,
                     radioOperation->band) != RETURN_OK) {
                 wifi_util_error_print(WIFI_MON,
-                    "%s:%d get_non_operational_channel_list failed for radio: %d\n", __func__,
-                    __LINE__, args->radio_index);
+                    "[OCS DEBUG] get_non_operational_channel_list failed for radio: %d\n", args->radio_index);
             }
-            // Filter out channels that are in the NOP/CAC started list
+            // Filter out NOP/CAC
             for (int chan_idx = 0; chan_idx < num_channels; chan_idx++) {
                 is_nop_chan = 0;
                 for (unsigned int nop_idx = 0; nop_idx < nop_chan_count; nop_idx++) {
                     if (channels[chan_idx] == nop_chan_list[nop_idx]) {
                         is_nop_chan = 1;
+                        wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] ONCHAN: Channel %d is NOP/CAC, skipping", channels[chan_idx]);
                         break;
                     }
                 }
-                // Only keep channels that are NOT in NOP/CAC state
                 if (is_nop_chan == 0) {
                     updated_channels[ch_count] = channels[chan_idx];
                     ch_count++;
@@ -911,106 +916,104 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
             }
             if (ch_count == 0 || ch_count > MAX_CHANNELS) {
                 wifi_util_info_print(WIFI_MON,
-                    "%s:%d on-channel scan could not be executed because the channel is currently "
-                    "in a NOP/CAC state for radio %d\n",
-                    __func__, __LINE__, args->radio_index);
+                    "[OCS DEBUG] ONCHAN: No usable channels (all NOP/CAC) or count invalid, radio=%d", args->radio_index);
                 return RETURN_ERR;
             }
             memcpy(channels, updated_channels, sizeof(int) * ch_count);
             num_channels = ch_count;
+            wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] ONCHAN: Usable channels after NOP/CAC filtering: num_channels=%d", num_channels);
         }
+
+    // -- FULL SCAN --
     } else if (args->scan_mode == WIFI_RADIO_SCAN_MODE_FULL) {
-
+        wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] Entering FULL SCAN branch");
         wifi_cap = getRadioCapability(args->radio_index);
-
         if (get_allowed_channels(radioOperation->band, wifi_cap, channels, &num_channels,
                 radioOperation->DfsEnabled) != RETURN_OK) {
             wifi_util_error_print(WIFI_MON,
-                "%s:%d get allowed channels failed for the radio : %d\n", __func__, __LINE__,
-                args->radio_index);
+                "[OCS DEBUG] FULL SCAN: get_allowed_channels failed for radio : %d\n", args->radio_index);
             return RETURN_ERR;
         }
-        // dont run offchan scan if device current using dfs channel
+        // 5GHz with DFS current channel special handling
         if (radioOperation->band == WIFI_FREQUENCY_5L_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5H_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5_BAND) {
+            wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] FULL SCAN: 5GHz detected, DFS check...");
             if (is_5g_20M_channel_in_dfs(radioOperation->channel) ||
                 radioOperation->channelWidth == WIFI_CHANNELBANDWIDTH_160MHZ) {
                 wifi_util_dbg_print(WIFI_MON,
-                    "%s:%d  full channel scan only executed on current channel duo to DFS channel "
-                    "in use for radio index %d\n",
-                    __func__, __LINE__, args->radio_index);
+                    "[OCS DEBUG] FULL SCAN: Full scan only executed on current channel due to DFS/160MHz, current channel=%d", radioOperation->channel);
                 num_channels = 1;
                 channels[0] = radioOperation->channel;
             }
         }
 
+    // -- SELECT CHANNEL LIST --
     } else if (args->scan_mode == WIFI_RADIO_SCAN_MODE_SELECT_CHANNELS) {
+        wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] Entering SELECT_CHANNELS branch");
         for (int i = 0; i < args->channel_list.num_channels; i++) {
             channels[i] = args->channel_list.channels_list[i];
             num_channels++;
         }
+        wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] SELECT_CHANNELS: num_channels filled=%d", num_channels);
+
+    // -- OFFCHAN or MISC --
     } else {
+        wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] Entering OFFCHAN branch or other scan mode=%d", args->scan_mode);
+
         int i;
         unsigned int non_filtered_channel_list[MAX_CHANNELS];
         unsigned int num_channels_value;
         if (args->channel_list.num_channels == 0) {
+            wifi_util_error_print(WIFI_MON, "[OCS DEBUG] OFFCHAN: num_channels is 0, returning error");
             return RETURN_ERR;
         }
-        // dont run offchan scan if device current using dfs channel
         if (radioOperation->band == WIFI_FREQUENCY_5L_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5H_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5_BAND) {
             if (is_5g_20M_channel_in_dfs(radioOperation->channel) ||
                 radioOperation->channelWidth == WIFI_CHANNELBANDWIDTH_160MHZ) {
                 wifi_util_dbg_print(WIFI_MON,
-                    "%s:%d  off channel scan not executed duo to DFS channel in use for radio "
-                    "index %d\n",
-                    __func__, __LINE__, args->radio_index);
+                    "[OCS DEBUG] OFFCHAN: 5GHz DFS/160MHz detected, offchannel scan NOT executed; radio_index=%d, channel=%d, width=%d", 
+                    args->radio_index, radioOperation->channel, radioOperation->channelWidth);
                 return RETURN_OK;
             }
         }
-        // Fill on-channel scan list
+        // Compose on-channel and nonoperational
         if (get_on_channel_scan_list(radioOperation->band, radioOperation->channelWidth,
-		radioOperation->channel, on_chan_list, &onchan_num_channels) != 0) {
-		onchan_num_channels = 1;
-		on_chan_list[0] = radioOperation->channel;
-	}
+            radioOperation->channel, on_chan_list, &onchan_num_channels) != 0) {
+            onchan_num_channels = 1;
+            on_chan_list[0] = radioOperation->channel;
+        }
         memcpy(non_filtered_channel_list, args->channel_list.channels_list,
             sizeof(int) * args->channel_list.num_channels);
         num_channels_value = args->channel_list.num_channels;
 
-        // Fill non-operational channel list
         if (get_non_operational_channel_list(args->radio_index, non_filtered_channel_list, num_channels_value,
                 nop_chan_list, &nop_chan_count, mon_data, radioOperation->band) != RETURN_OK) {
             wifi_util_error_print(WIFI_MON,
-                "%s:%d get_non_operational_channel_list failed for radio: %d\n", __func__, __LINE__,
-                args->radio_index);
+                "[OCS DEBUG] OFFCHAN: get_non_operational_channel_list failed for radio: %d\n", args->radio_index);
         }
-        // skip on-channel scan and non-operational channel list
         for (int i = 0; i < args->channel_list.num_channels; i++) {
             is_nop_chan = 0;
             is_on_chan = 0;
-            //On-channel filter
             for (int chan_idx = 0; chan_idx < onchan_num_channels; chan_idx++) {
                 if ((int)args->channel_list.channels_list[i] == on_chan_list[chan_idx]) {
                     is_on_chan = 1;
                     break;
                 }
             }
-            // Non-operational channel filter
             if (nop_chan_count != 0 && is_on_chan != 1) {
                 for (unsigned int nop_idx = 0; nop_idx < nop_chan_count; nop_idx++) {
                     if (args->channel_list.channels_list[i] == (int)nop_chan_list[nop_idx]) {
                         wifi_util_dbg_print(WIFI_MON,
-                            "%s:%d  skipping NOP channel %d for radio index %d\n", __func__,
-                            __LINE__, args->channel_list.channels_list[i], args->radio_index);
+                            "[OCS DEBUG] OFFCHAN: Channel %d is NOP, skipping for radio index %d", 
+                            args->channel_list.channels_list[i], args->radio_index);
                         is_nop_chan = 1;
                         break;
                     }
                 }
             }
-            //Filtered channel list
             if (!is_on_chan && !is_nop_chan) {
                 updated_channels[new_num_channels++] = args->channel_list.channels_list[i];
             }
@@ -1029,31 +1032,36 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
             }
             num_channels = 1;
             mon_data->last_scanned_channel[args->radio_index] = channels[0];
+        wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] OFFCHAN: Decided to scan channel %d, radio_index=%d", channels[0], args->radio_index);
     }
 
     if (num_channels == 0) {
-        wifi_util_error_print(WIFI_MON, "%s:%d invalid number of channels\n", __func__, __LINE__);
+        wifi_util_error_print(WIFI_MON, "[OCS DEBUG] ERROR: num_channels=0, nothing to scan, returning error");
         return RETURN_ERR;
     }
+
+    // Dwell time log for OCS
     if (args->scan_mode == WIFI_RADIO_SCAN_MODE_FULL || args->scan_mode == WIFI_RADIO_SCAN_MODE_SELECT_CHANNELS ) {
         dwell_time = args->dwell_time;
         if (radioOperation->band == WIFI_FREQUENCY_6_BAND) {
             if (args->dwell_time < 110) {
+                wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] 6GHz band, dwell_time raised to 110");
                 dwell_time = 110;
             }
         }
     } else {
         dwell_time = args->dwell_time;
         if (dwell_time == 0) {
+            wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] dwell_time defaulted to 20");
             dwell_time = 20;
         }
         if (args->scan_mode == WIFI_RADIO_SCAN_MODE_ONCHAN) {
-            // make sure dwell time is less than 20ms if DFS channel
             if (radioOperation->band == WIFI_FREQUENCY_5L_BAND ||
                 radioOperation->band == WIFI_FREQUENCY_5H_BAND ||
                 radioOperation->band == WIFI_FREQUENCY_5_BAND) {
                 if (is_5g_20M_channel_in_dfs(radioOperation->channel) ||
                     radioOperation->channelWidth == WIFI_CHANNELBANDWIDTH_160MHZ) {
+                    wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] ONCHAN: 5GHz DFS/160MHz detected, dwell_time forced to 20");
                     dwell_time = 20;
                 }
             }
@@ -1070,9 +1078,8 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
         channel_buff[bytes_written - 1] = '\0';
     }
     wifi_util_dbg_print(WIFI_MON,
-        "%s:%d Start scan. Radio_index : %d scan_mode : %d dwell_time : %d num_channels : %d  "
-        "channels : %s\n",
-        __func__, __LINE__, args->radio_index, args->scan_mode, dwell_time, num_channels,
+        "[OCS DEBUG] Start scan. Radio_index: %d scan_mode: %d dwell_time: %d num_channels: %d channels: %s\n",
+        args->radio_index, args->scan_mode, dwell_time, num_channels,
         (channel_buff != NULL ? channel_buff : "NULL"));
 
     if (channel_buff != NULL) {
@@ -1081,6 +1088,8 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
     mon_data->scan_status[args->radio_index] = 1;
     mon_data->scan_results_retries[args->radio_index] = 0;
     int private_vap_index = getPrivateApFromRadioIndex(args->radio_index);
+
+    wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] Invoking wifi_startNeighborScan (private_vap_index=%d) with %d channel(s) mode=%d dt=%d", private_vap_index, num_channels, args->scan_mode, dwell_time);
     ret = wifi_startNeighborScan(private_vap_index, args->scan_mode, dwell_time, num_channels,
         (unsigned int *)channels);
     clock_gettime(CLOCK_MONOTONIC, &(mon_data->last_scan_time[args->radio_index]));
@@ -1091,16 +1100,18 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
             NEIGHBOR_SCAN_RETRY_INTERVAL, 1, TRUE);
         c_elem->u.radio_channel_neighbor_data.scan_trigger_task_id = id;
         wifi_util_dbg_print(WIFI_MON,
-            "%s:%d  Retry (%d) to trigger scan for scan mode %d radio index %d\n", __func__,
-            __LINE__, mon_data->scan_trigger_retries[args->radio_index], args->scan_mode,
+            "[OCS DEBUG] Scan FAILED; scheduling retrigger. Retry (%d) scan_mode=%d radio=%d\n",
+            mon_data->scan_trigger_retries[args->radio_index], args->scan_mode,
             args->radio_index);
         return RETURN_OK;
     }
 
+    wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] Scan command issued successfully, scheduling scan complete check.");
     scheduler_add_timer_task(mon_data->sched, FALSE, &id, check_scan_complete_read_results, c_elem,
         RADIO_SCAN_RESULT_INTERVAL / 2, 1, FALSE);
     c_elem->u.radio_channel_neighbor_data.scan_complete_task_id = id;
 
+    wifi_util_dbg_print(WIFI_MON, "[OCS DEBUG] -> Exit execute_radio_channel_api SUCCESS");
     return RETURN_OK;
 }
 
