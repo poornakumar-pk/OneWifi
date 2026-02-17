@@ -966,7 +966,6 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
                     "index %d\n",
                     __func__, __LINE__, args->radio_index);
                 return RETURN_OK;
-            }
         }
         // Fill on-channel scan list
         if (get_on_channel_scan_list(radioOperation->band, radioOperation->channelWidth,
