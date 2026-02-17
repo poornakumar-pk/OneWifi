@@ -971,13 +971,11 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
         if (radioOperation->band == WIFI_FREQUENCY_5L_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5H_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5_BAND) {
-            if (is_5g_20M_channel_in_dfs(radioOperation->channel) ||
-                radioOperation->channelWidth == WIFI_CHANNELBANDWIDTH_160MHZ) {
-                wifi_util_dbg_print(WIFI_MON,
-                    "[OCS DEBUG] OFFCHAN: 5GHz DFS/160MHz detected, offchannel scan NOT executed; radio_index=%d, channel=%d, width=%d", 
+            wifi_util_dbg_print(WIFI_MON,
+                    "[OCS DEBUG] OFFCHAN: 5GHz DFS/160MHz detected, offchannel scan executed; radio_index=%d, channel=%d, width=%d", 
                     args->radio_index, radioOperation->channel, radioOperation->channelWidth);
                 return RETURN_OK;
-            }
+            
         }
         // Compose on-channel and nonoperational
         if (get_on_channel_scan_list(radioOperation->band, radioOperation->channelWidth,
