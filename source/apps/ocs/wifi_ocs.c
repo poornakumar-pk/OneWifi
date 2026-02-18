@@ -183,13 +183,14 @@ int push_ocs_config_event_to_monitor_queue(wifi_mon_stats_request_state_t state,
         wifi_util_dbg_print(WIFI_OCS,"%s:%d off_channel_scan chan number:%u\n", __func__, __LINE__, wifiCapPtr->channel_list[0].channels_list[num]);
     }
     //add nscan, tidlesec and convert into milli seconds and assign it to the time interval 
+    wifi_util_dbg_print(WIFI_OCS,"%s:%d [OCS DEBUG]data->u.mon_stats_config.start_immediately = true; has been done \n", __func__, __LINE__);
     data->u.mon_stats_config.args.radio_index = wifi_mgr->radio_config[radioIndex].vaps.radio_index;
     data->u.mon_stats_config.interval_ms = (((int) ocs_cfg->NscanSec + ocs_cfg->TidleSec) * SEC_TO_MILLISEC);
     data->u.mon_stats_config.args.channel_list.num_channels = valid_chan_count;
     data->u.mon_stats_config.args.scan_mode = WIFI_RADIO_SCAN_MODE_OFFCHAN;
     data->u.mon_stats_config.inst = wifi_app_inst_ocs;
     data->u.mon_stats_config.req_state = state;
-    data->u.mon_stats_config.start_immediately = false;
+    data->u.mon_stats_config.start_immediately = true;
     data->u.mon_stats_config.delay_provider_sec = OCS_NEIGBOUR_SCAN_PROVIDER_DELAY_SEC;
 
     config_ocs_chan_util(data, radioIndex);
