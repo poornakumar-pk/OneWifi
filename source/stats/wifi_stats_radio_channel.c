@@ -959,6 +959,7 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
         }
 		wifi_util_dbg_print(WIFI_MON, " POORNA Entering OFFCHAN branch or other scan mode=%d\n", args->scan_mode);
         // dont run offchan scan if device current using dfs channel
+		/**
         if (radioOperation->band == WIFI_FREQUENCY_5L_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5H_BAND ||
             radioOperation->band == WIFI_FREQUENCY_5_BAND) {
@@ -971,6 +972,7 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
                 return RETURN_OK;
             }
         }
+		**/
         // Fill on-channel scan list
         if (get_on_channel_scan_list(radioOperation->band, radioOperation->channelWidth,
 		radioOperation->channel, on_chan_list, &onchan_num_channels) != 0) {
