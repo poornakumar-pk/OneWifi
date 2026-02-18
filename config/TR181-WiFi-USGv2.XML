@@ -1001,7 +1001,7 @@ INSTMSMT_PH2 -->
                         </parameter>
                         <parameter>
                             <name>X_RDK_OffChannelNscan</name>
-                            <type>unsignedInt[0:15]</type>
+                            <type>unsignedInt[0:300]</type>
                             <syntax>uint32</syntax>
                             <writable>true</writable>
                         </parameter>
