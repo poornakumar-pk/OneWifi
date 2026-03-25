@@ -3026,8 +3026,8 @@ webconfig_error_t decode_radio_object(const cJSON *obj_radio, rdk_wifi_radio_t *
     if (radio_info->basicDataTransmitRates == 0) {
         wifi_util_info_print(WIFI_WEBCONFIG,
             "[POORNA] %s:%d basicDataTransmitRates is 0 (empty blob), restoring 5GHz OFDM default 0x%x\n",
-            __func__, __LINE__, WIFI_BITRATE_6MHZ);
-        radio_info->basicDataTransmitRates = WIFI_BITRATE_6MHZ;
+            __func__, __LINE__, WIFI_BITRATE_6MBPS);
+        radio_info->basicDataTransmitRates = WIFI_BITRATE_6MBPS;
     }
 
     // OperationalDataTransmitRates
@@ -3037,11 +3037,11 @@ webconfig_error_t decode_radio_object(const cJSON *obj_radio, rdk_wifi_radio_t *
         wifi_util_info_print(WIFI_WEBCONFIG,
             "[POORNA] %s:%d operationalDataTransmitRates is 0 (empty blob), restoring 5GHz OFDM default 0x%x\n",
             __func__, __LINE__,
-            WIFI_BITRATE_6MHZ | WIFI_BITRATE_9MHZ | WIFI_BITRATE_12MHZ | WIFI_BITRATE_18MHZ |
-            WIFI_BITRATE_24MHZ | WIFI_BITRATE_36MHZ | WIFI_BITRATE_48MHZ | WIFI_BITRATE_54MHZ);
+            WIFI_BITRATE_6MBPS | WIFI_BITRATE_9MBPS | WIFI_BITRATE_12MBPS | WIFI_BITRATE_18MBPS |
+            WIFI_BITRATE_24MBPS | WIFI_BITRATE_36MBPS | WIFI_BITRATE_48MBPS | WIFI_BITRATE_54MBPS);
         radio_info->operationalDataTransmitRates =
-            WIFI_BITRATE_6MHZ | WIFI_BITRATE_9MHZ | WIFI_BITRATE_12MHZ | WIFI_BITRATE_18MHZ |
-            WIFI_BITRATE_24MHZ | WIFI_BITRATE_36MHZ | WIFI_BITRATE_48MHZ | WIFI_BITRATE_54MHZ;
+            WIFI_BITRATE_6MBPS | WIFI_BITRATE_9MBPS | WIFI_BITRATE_12MBPS | WIFI_BITRATE_18MBPS |
+            WIFI_BITRATE_24MBPS | WIFI_BITRATE_36MBPS | WIFI_BITRATE_48MBPS | WIFI_BITRATE_54MBPS;
     }
 
 
