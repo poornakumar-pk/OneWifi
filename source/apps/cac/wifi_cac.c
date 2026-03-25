@@ -371,7 +371,20 @@ int cac_event_exec_timeout(wifi_app_t *apps, void *arg)
                 preassoc_basic_rates = NULL;
             }
 
+            wifi_util_info_print(WIFI_APPS,
+                "[POORNA CAC] %s:%d POSTASSOC_CONFIG vap='%s' ap_idx=%u "
+                "rssi_en=%d snr_en=%d cu_en=%d mcs_en=%d mbr_en=%d "
+                "basic_rates='%s' min_mbr_rate=%.1f\n",
+                __func__, __LINE__, vap_name, client->ap_index,
+                (int)rssi_enabled, (int)snr_enabled, (int)chan_util_enabled,
+                (int)mcs_enabled, (int)mbr_enabled,
+                (char *)wifidb_preassoc_conf.basic_data_transmit_rates,
+                min_mbr_rate);
+
             if (!rssi_enabled && !snr_enabled && !chan_util_enabled && !mcs_enabled && !mbr_enabled) {
+                wifi_util_info_print(WIFI_APPS,
+                    "[POORNA CAC] %s:%d POSTASSOC ALL_DISABLED vap='%s' - skipping\n",
+                    __func__, __LINE__, vap_name);
                 client = hash_map_get_next(sta_map, client);
                 continue;
             }
@@ -595,6 +608,18 @@ void cac_mgmt_frame_event(wifi_app_t *app, frame_data_t *msg, int type)
         return;
     }
 
+    wifi_util_info_print(WIFI_APPS,
+        "[POORNA CAC] %s:%d PREASSOC_CONFIG vap='%s' ap_idx=%d "
+        "rssi='%s' snr='%s' cu='%s' basic_rates='%s' oper_rates='%s' supp_rates='%s' mcs='%s'\n",
+        __func__, __LINE__, vap_name, msg->frame.ap_index,
+        (char *)wifidb_preassoc_conf.rssi_up_threshold,
+        (char *)wifidb_preassoc_conf.snr_threshold,
+        (char *)wifidb_preassoc_conf.cu_threshold,
+        (char *)wifidb_preassoc_conf.basic_data_transmit_rates,
+        (char *)wifidb_preassoc_conf.operational_data_transmit_rates,
+        (char *)wifidb_preassoc_conf.supported_data_transmit_rates,
+        (char *)wifidb_preassoc_conf.minimum_advertised_mcs);
+
     if (strcmp(wifidb_preassoc_conf.rssi_up_threshold, "disabled") == 0) {
         rssi_enabled = false;
         rssi_status = status_ok;
@@ -631,7 +656,16 @@ void cac_mgmt_frame_event(wifi_app_t *app, frame_data_t *msg, int type)
         free(preassoc_basic_rates);
         preassoc_basic_rates = NULL;
     }
+    wifi_util_info_print(WIFI_APPS,
+        "[POORNA CAC] %s:%d MBR_STATE vap='%s' mbr_enabled=%d basic_rates='%s' min_mbr_rate=%.1f "
+        "rssi_en=%d snr_en=%d cu_en=%d\n",
+        __func__, __LINE__, vap_name, (int)mbr_enabled,
+        (char *)wifidb_preassoc_conf.basic_data_transmit_rates,
+        min_mbr_rate, (int)rssi_enabled, (int)snr_enabled, (int)chan_util_enabled);
     if (!rssi_enabled && !snr_enabled && !chan_util_enabled && !mbr_enabled) {
+        wifi_util_info_print(WIFI_APPS,
+            "[POORNA CAC] %s:%d ALL_DISABLED vap='%s' ap_idx=%d - skipping CAC enforcement\n",
+            __func__, __LINE__, vap_name, msg->frame.ap_index);
         return;
     }
 
@@ -642,12 +676,18 @@ void cac_mgmt_frame_event(wifi_app_t *app, frame_data_t *msg, int type)
 
     if ((elem = (cac_sta_info_t *)hash_map_get(req_map, mac_str)) == NULL) {
         threshold_breached = false;
-        if(mbr_enabled) {
+        if (mbr_enabled) {
             if (sta_phy_rate >= min_mbr_rate) {
                 mbr_status = status_ok;
+                wifi_util_info_print(WIFI_APPS,
+                    "[POORNA CAC] %s:%d MBR_EVAL PASS vap='%s' sta='%s' phy_rate=%.1f >= min_mbr=%.1f\n",
+                    __func__, __LINE__, vap_name, str, sta_phy_rate, min_mbr_rate);
             } else {
                 threshold_breached = true;
                 mbr_status = status_deny;
+                wifi_util_info_print(WIFI_APPS,
+                    "[POORNA CAC] %s:%d MBR_EVAL DENY vap='%s' sta='%s' phy_rate=%.1f < min_mbr=%.1f\n",
+                    __func__, __LINE__, vap_name, str, sta_phy_rate, min_mbr_rate);
                 if (msg->frame.type == WIFI_MGMT_FRAME_TYPE_PROBE_REQ) {
                     wifi_util_info_print(WIFI_APPS,"%s:%d, PROBE DENY %s due to lower phy rate\n", __func__, __LINE__, str);
                 } else {

@@ -600,35 +600,82 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
 
 static bool is_preassoc_cac_config_changed(wifi_vap_info_t *old, wifi_vap_info_t *new)
 {
-    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.rssi_up_threshold, new->u.bss_info.preassoc.rssi_up_threshold, sizeof(old->u.bss_info.preassoc.rssi_up_threshold)))
-        || (IS_STR_CHANGED(old->u.bss_info.preassoc.snr_threshold, new->u.bss_info.preassoc.snr_threshold, sizeof(old->u.bss_info.preassoc.snr_threshold)))
-        || (IS_STR_CHANGED(old->u.bss_info.preassoc.cu_threshold, new->u.bss_info.preassoc.cu_threshold, sizeof(old->u.bss_info.preassoc.cu_threshold)))
-        || (IS_STR_CHANGED(old->u.bss_info.preassoc.basic_data_transmit_rates, new->u.bss_info.preassoc.basic_data_transmit_rates, sizeof(old->u.bss_info.preassoc.basic_data_transmit_rates)))
-        || (IS_STR_CHANGED(old->u.bss_info.preassoc.operational_data_transmit_rates, new->u.bss_info.preassoc.operational_data_transmit_rates, sizeof(old->u.bss_info.preassoc.operational_data_transmit_rates)))
-        || (IS_STR_CHANGED(old->u.bss_info.preassoc.supported_data_transmit_rates, new->u.bss_info.preassoc.supported_data_transmit_rates, sizeof(old->u.bss_info.preassoc.supported_data_transmit_rates)))
-        || (IS_STR_CHANGED(old->u.bss_info.preassoc.minimum_advertised_mcs, new->u.bss_info.preassoc.minimum_advertised_mcs, sizeof(old->u.bss_info.preassoc.minimum_advertised_mcs)))
-        || (IS_STR_CHANGED(old->u.bss_info.preassoc.sixGOpInfoMinRate, new->u.bss_info.preassoc.sixGOpInfoMinRate, sizeof(old->u.bss_info.preassoc.sixGOpInfoMinRate)))
-        || (IS_CHANGED(old->u.bss_info.preassoc.time_ms, new->u.bss_info.preassoc.time_ms))
-        || (IS_CHANGED(old->u.bss_info.preassoc.min_num_mgmt_frames, new->u.bss_info.preassoc.min_num_mgmt_frames))
-        || (IS_STR_CHANGED(old->u.bss_info.preassoc.tcm_exp_weightage, new->u.bss_info.preassoc.tcm_exp_weightage, sizeof(old->u.bss_info.preassoc.tcm_exp_weightage)))
-        || (IS_STR_CHANGED(old->u.bss_info.preassoc.tcm_gradient_threshold, new->u.bss_info.preassoc.tcm_gradient_threshold, sizeof(old->u.bss_info.preassoc.tcm_gradient_threshold)))) {
+    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.rssi_up_threshold, new->u.bss_info.preassoc.rssi_up_threshold, sizeof(old->u.bss_info.preassoc.rssi_up_threshold)))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED rssi: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.preassoc.rssi_up_threshold, (char *)new->u.bss_info.preassoc.rssi_up_threshold);
         return true;
-    } else {
-        return false;
     }
+    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.snr_threshold, new->u.bss_info.preassoc.snr_threshold, sizeof(old->u.bss_info.preassoc.snr_threshold)))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED snr: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.preassoc.snr_threshold, (char *)new->u.bss_info.preassoc.snr_threshold);
+        return true;
+    }
+    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.cu_threshold, new->u.bss_info.preassoc.cu_threshold, sizeof(old->u.bss_info.preassoc.cu_threshold)))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED cu: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.preassoc.cu_threshold, (char *)new->u.bss_info.preassoc.cu_threshold);
+        return true;
+    }
+    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.basic_data_transmit_rates, new->u.bss_info.preassoc.basic_data_transmit_rates, sizeof(old->u.bss_info.preassoc.basic_data_transmit_rates)))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED basic_rates: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.preassoc.basic_data_transmit_rates, (char *)new->u.bss_info.preassoc.basic_data_transmit_rates);
+        return true;
+    }
+    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.operational_data_transmit_rates, new->u.bss_info.preassoc.operational_data_transmit_rates, sizeof(old->u.bss_info.preassoc.operational_data_transmit_rates)))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED oper_rates: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.preassoc.operational_data_transmit_rates, (char *)new->u.bss_info.preassoc.operational_data_transmit_rates);
+        return true;
+    }
+    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.supported_data_transmit_rates, new->u.bss_info.preassoc.supported_data_transmit_rates, sizeof(old->u.bss_info.preassoc.supported_data_transmit_rates)))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED supp_rates: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.preassoc.supported_data_transmit_rates, (char *)new->u.bss_info.preassoc.supported_data_transmit_rates);
+        return true;
+    }
+    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.minimum_advertised_mcs, new->u.bss_info.preassoc.minimum_advertised_mcs, sizeof(old->u.bss_info.preassoc.minimum_advertised_mcs)))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED min_mcs: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.preassoc.minimum_advertised_mcs, (char *)new->u.bss_info.preassoc.minimum_advertised_mcs);
+        return true;
+    }
+    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.sixGOpInfoMinRate, new->u.bss_info.preassoc.sixGOpInfoMinRate, sizeof(old->u.bss_info.preassoc.sixGOpInfoMinRate)))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED 6g_minrate: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.preassoc.sixGOpInfoMinRate, (char *)new->u.bss_info.preassoc.sixGOpInfoMinRate);
+        return true;
+    }
+    if ((IS_CHANGED(old->u.bss_info.preassoc.time_ms, new->u.bss_info.preassoc.time_ms))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED time_ms: %u -> %u\n", __func__, __LINE__, old->u.bss_info.preassoc.time_ms, new->u.bss_info.preassoc.time_ms);
+        return true;
+    }
+    if ((IS_CHANGED(old->u.bss_info.preassoc.min_num_mgmt_frames, new->u.bss_info.preassoc.min_num_mgmt_frames))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED min_mgmt_frames: %u -> %u\n", __func__, __LINE__, old->u.bss_info.preassoc.min_num_mgmt_frames, new->u.bss_info.preassoc.min_num_mgmt_frames);
+        return true;
+    }
+    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.tcm_exp_weightage, new->u.bss_info.preassoc.tcm_exp_weightage, sizeof(old->u.bss_info.preassoc.tcm_exp_weightage)))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED tcm_weight: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.preassoc.tcm_exp_weightage, (char *)new->u.bss_info.preassoc.tcm_exp_weightage);
+        return true;
+    }
+    if ((IS_STR_CHANGED(old->u.bss_info.preassoc.tcm_gradient_threshold, new->u.bss_info.preassoc.tcm_gradient_threshold, sizeof(old->u.bss_info.preassoc.tcm_gradient_threshold)))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC CHANGED tcm_gradient: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.preassoc.tcm_gradient_threshold, (char *)new->u.bss_info.preassoc.tcm_gradient_threshold);
+        return true;
+    }
+    wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d PREASSOC NO CHANGE vap='%s' basic='%s'\n",
+        __func__, __LINE__, old->vap_name, (char *)old->u.bss_info.preassoc.basic_data_transmit_rates);
+    return false;
 }
 
 static bool is_postassoc_cac_config_changed(wifi_vap_info_t *old, wifi_vap_info_t *new)
 {
-    if ((IS_STR_CHANGED(old->u.bss_info.postassoc.rssi_up_threshold, new->u.bss_info.postassoc.rssi_up_threshold, sizeof(old->u.bss_info.postassoc.rssi_up_threshold)))
-        || (IS_STR_CHANGED(old->u.bss_info.postassoc.sampling_interval, new->u.bss_info.postassoc.sampling_interval, sizeof(old->u.bss_info.postassoc.sampling_interval)))
-        || (IS_STR_CHANGED(old->u.bss_info.postassoc.snr_threshold, new->u.bss_info.postassoc.snr_threshold, sizeof(old->u.bss_info.postassoc.snr_threshold)))
-        || (IS_STR_CHANGED(old->u.bss_info.postassoc.sampling_count, new->u.bss_info.postassoc.sampling_count, sizeof(old->u.bss_info.postassoc.sampling_count)))
-        || (IS_STR_CHANGED(old->u.bss_info.postassoc.cu_threshold, new->u.bss_info.postassoc.cu_threshold, sizeof(old->u.bss_info.postassoc.cu_threshold)))) {
+    if (IS_STR_CHANGED(old->u.bss_info.postassoc.rssi_up_threshold, new->u.bss_info.postassoc.rssi_up_threshold, sizeof(old->u.bss_info.postassoc.rssi_up_threshold))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d POSTASSOC CHANGED rssi: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.postassoc.rssi_up_threshold, (char *)new->u.bss_info.postassoc.rssi_up_threshold);
         return true;
-    } else {
-        return false;
     }
+    if (IS_STR_CHANGED(old->u.bss_info.postassoc.sampling_interval, new->u.bss_info.postassoc.sampling_interval, sizeof(old->u.bss_info.postassoc.sampling_interval))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d POSTASSOC CHANGED sampling_interval: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.postassoc.sampling_interval, (char *)new->u.bss_info.postassoc.sampling_interval);
+        return true;
+    }
+    if (IS_STR_CHANGED(old->u.bss_info.postassoc.snr_threshold, new->u.bss_info.postassoc.snr_threshold, sizeof(old->u.bss_info.postassoc.snr_threshold))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d POSTASSOC CHANGED snr: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.postassoc.snr_threshold, (char *)new->u.bss_info.postassoc.snr_threshold);
+        return true;
+    }
+    if (IS_STR_CHANGED(old->u.bss_info.postassoc.sampling_count, new->u.bss_info.postassoc.sampling_count, sizeof(old->u.bss_info.postassoc.sampling_count))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d POSTASSOC CHANGED sampling_count: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.postassoc.sampling_count, (char *)new->u.bss_info.postassoc.sampling_count);
+        return true;
+    }
+    if (IS_STR_CHANGED(old->u.bss_info.postassoc.cu_threshold, new->u.bss_info.postassoc.cu_threshold, sizeof(old->u.bss_info.postassoc.cu_threshold))) {
+        wifi_util_info_print(WIFI_CTRL, "[POORNA CAC] %s:%d POSTASSOC CHANGED cu: '%s' -> '%s'\n", __func__, __LINE__, (char *)old->u.bss_info.postassoc.cu_threshold, (char *)new->u.bss_info.postassoc.cu_threshold);
+        return true;
+    }
+    return false;
 }
 
 
@@ -1419,25 +1466,77 @@ int webconfig_global_config_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
 int webconfig_cac_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t *data)
 {
     wifi_util_dbg_print(WIFI_CTRL,"Inside webconfig_cac_apply\n");
+    wifi_util_info_print(WIFI_CTRL, "[POORNA] %s:%d webconfig_cac_apply ENTRY\n", __func__, __LINE__);
     unsigned int vap_index;
     unsigned int radio_index;
     wifi_vap_info_map_t *l_vap_maps;
+
+    /* FIX: webconfig_hal_xfinity_vap_apply() runs BEFORE this function.
+     * Its internal memcpy overwrites the mgr cache preassoc fields with the
+     * incoming blob values BEFORE we compare here. As a result,
+     * get_wifidb_vap_map() returns the already-updated cache ("disabled") and
+     * the blob also has "disabled" -> IS_STR_CHANGED always FALSE -> OVSDB
+     * write skipped forever.
+     *
+     * FIX: Read the true "old" state directly from OVSDB via
+     * wifidb_get_preassoc_ctrl_config() and use that for comparison,
+     * bypassing the poisoned mgr cache.
+     */
 
     //Apply the CAC Data
     for(radio_index = 0; radio_index < getNumberRadios(); radio_index++) {
         l_vap_maps = get_wifidb_vap_map(radio_index);
         for (vap_index = 0; vap_index < getNumberVAPsPerRadio(radio_index); vap_index++) {
             wifi_util_dbg_print(WIFI_CTRL,"Comparing cac config\n");
+            unsigned int tgt_vap_index = l_vap_maps->vap_array[vap_index].vap_index;
+            if (!isVapHotspot(tgt_vap_index)) {
+                wifi_util_dbg_print(WIFI_CTRL,
+                    "%s:%d Skipping cac config apply for non hotspot vap: %d \n", __func__,
+                    __LINE__, tgt_vap_index);
+                continue;
+            }
 
-            if (is_preassoc_cac_config_changed(&l_vap_maps->vap_array[vap_index], &data->radios[radio_index].vaps.vap_map.vap_array[vap_index])
-                || is_postassoc_cac_config_changed(&l_vap_maps->vap_array[vap_index], &data->radios[radio_index].vaps.vap_map.vap_array[vap_index])) {
+            /* FIX: Use OVSDB as the "old" reference, not the poisoned mgr cache */
+            wifi_vap_info_t shadow_old_vap;
+            memcpy(&shadow_old_vap, &l_vap_maps->vap_array[vap_index], sizeof(wifi_vap_info_t));
+            if (wifidb_get_preassoc_ctrl_config(shadow_old_vap.vap_name,
+                    &shadow_old_vap.u.bss_info.preassoc) != RETURN_OK) {
+                wifi_util_error_print(WIFI_CTRL,
+                    "[POORNA] %s:%d wifidb_get_preassoc_ctrl_config failed for vap=%s, "
+                    "falling back to mgr cache\n",
+                    __func__, __LINE__, shadow_old_vap.vap_name);
+                /* Fallback: use mgr cache as-is if OVSDB read fails */
+            }
+
+            wifi_util_info_print(WIFI_CTRL,
+                "[POORNA] %s:%d CAC APPLY vap=%s (idx=%d) radio=%d "
+                "ovsdb_basic='%s' blob_basic='%s'\n",
+                __func__, __LINE__,
+                shadow_old_vap.vap_name, tgt_vap_index, radio_index,
+                shadow_old_vap.u.bss_info.preassoc.basic_data_transmit_rates,
+                data->radios[radio_index].vaps.vap_map.vap_array[vap_index].u.bss_info.preassoc.basic_data_transmit_rates);
+
+            if (is_preassoc_cac_config_changed(&shadow_old_vap, &data->radios[radio_index].vaps.vap_map.vap_array[vap_index])
+                || is_postassoc_cac_config_changed(&shadow_old_vap, &data->radios[radio_index].vaps.vap_map.vap_array[vap_index])) {
                 // cac or tcm data changed apply
                 wifi_util_info_print(WIFI_CTRL, "%s:%d: Change detected in received cac config, applying new configuration for vap: %d\n",
                                     __func__, __LINE__, vap_index);
+                wifi_util_info_print(WIFI_CTRL,
+                    "[POORNA] %s:%d CAC CHANGE DETECTED vap=%s ovsdb_basic='%s' -> blob_basic='%s' "
+                    "-> calling wifidb_update_wifi_cac_config\n",
+                    __func__, __LINE__, shadow_old_vap.vap_name,
+                    shadow_old_vap.u.bss_info.preassoc.basic_data_transmit_rates,
+                    data->radios[radio_index].vaps.vap_map.vap_array[vap_index].u.bss_info.preassoc.basic_data_transmit_rates);
                 wifidb_update_wifi_cac_config(&data->radios[radio_index].vaps.vap_map);
             } else {
                 wifi_util_info_print(WIFI_CTRL, "%s:%d: Received vap config is same for %d, not applying\n",
                             __func__, __LINE__, vap_index);
+                wifi_util_info_print(WIFI_CTRL,
+                    "[POORNA] %s:%d CAC NO CHANGE vap=%s ovsdb_basic='%s' == blob_basic='%s'\n",
+                    __func__, __LINE__,
+                    shadow_old_vap.vap_name,
+                    shadow_old_vap.u.bss_info.preassoc.basic_data_transmit_rates,
+                    data->radios[radio_index].vaps.vap_map.vap_array[vap_index].u.bss_info.preassoc.basic_data_transmit_rates);
             }
         }
     }

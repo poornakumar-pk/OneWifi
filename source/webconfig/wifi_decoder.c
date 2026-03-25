@@ -3015,13 +3015,35 @@ webconfig_error_t decode_radio_object(const cJSON *obj_radio, rdk_wifi_radio_t *
     decode_param_integer(obj_radio, "OperatingClass", param);
     radio_info->operatingClass = param->valuedouble;
 
+
     // BasicDataTransmitRates
     decode_param_integer(obj_radio, "BasicDataTransmitRates", param);
     radio_info->basicDataTransmitRates = param->valuedouble;
+    /* FIX [POORNA]: An empty rate array in the blob decodes to bitmask 0.
+     * Passing 0 to the BCM HAL causes the driver to corrupt the beacon
+     * Supported Rates IE with 0x00 bytes ("Unknown Rate" in Wireshark).
+     * Restore standard 5GHz OFDM defaults (6,9,12,18,24,36,48,54 Mbps) instead. */
+    if (radio_info->basicDataTransmitRates == 0) {
+        wifi_util_info_print(WIFI_WEBCONFIG,
+            "[POORNA] %s:%d basicDataTransmitRates is 0 (empty blob), restoring 5GHz OFDM default 0x%x\n",
+            __func__, __LINE__, WIFI_BITRATE_6MHZ);
+        radio_info->basicDataTransmitRates = WIFI_BITRATE_6MHZ;
+    }
 
     // OperationalDataTransmitRates
     decode_param_integer(obj_radio, "OperationalDataTransmitRates", param);
     radio_info->operationalDataTransmitRates = param->valuedouble;
+    if (radio_info->operationalDataTransmitRates == 0) {
+        wifi_util_info_print(WIFI_WEBCONFIG,
+            "[POORNA] %s:%d operationalDataTransmitRates is 0 (empty blob), restoring 5GHz OFDM default 0x%x\n",
+            __func__, __LINE__,
+            WIFI_BITRATE_6MHZ | WIFI_BITRATE_9MHZ | WIFI_BITRATE_12MHZ | WIFI_BITRATE_18MHZ |
+            WIFI_BITRATE_24MHZ | WIFI_BITRATE_36MHZ | WIFI_BITRATE_48MHZ | WIFI_BITRATE_54MHZ);
+        radio_info->operationalDataTransmitRates =
+            WIFI_BITRATE_6MHZ | WIFI_BITRATE_9MHZ | WIFI_BITRATE_12MHZ | WIFI_BITRATE_18MHZ |
+            WIFI_BITRATE_24MHZ | WIFI_BITRATE_36MHZ | WIFI_BITRATE_48MHZ | WIFI_BITRATE_54MHZ;
+    }
+
 
     // FragmentationThreshold
     decode_param_integer(obj_radio, "FragmentationThreshold", param);
@@ -3894,7 +3916,18 @@ webconfig_error_t decode_preassoc_cac_object(const cJSON *preassoc, wifi_preasso
             strcpy((char *)preassoc_info->sixGOpInfoMinRate, "disabled");
    }
 
-    wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d: decoding preassoc settings passed\n", __func__, __LINE__);
+    wifi_util_info_print(WIFI_WEBCONFIG,
+        "[POORNA CAC] %s:%d DECODE_PREASSOC DONE "
+        "rssi='%s' snr='%s' cu='%s' basic_rates='%s' oper_rates='%s' supp_rates='%s' mcs='%s' 6g='%s'\n",
+        __func__, __LINE__,
+        (char *)preassoc_info->rssi_up_threshold,
+        (char *)preassoc_info->snr_threshold,
+        (char *)preassoc_info->cu_threshold,
+        (char *)preassoc_info->basic_data_transmit_rates,
+        (char *)preassoc_info->operational_data_transmit_rates,
+        (char *)preassoc_info->supported_data_transmit_rates,
+        (char *)preassoc_info->minimum_advertised_mcs,
+        (char *)preassoc_info->sixGOpInfoMinRate);
 
     return webconfig_error_none;
 }
@@ -4065,6 +4098,10 @@ webconfig_error_t decode_postassoc_cac_object(const cJSON *postassoc, wifi_posta
 webconfig_error_t decode_cac_object(wifi_vap_info_t *vap_info, cJSON *obj_array )
 {
     const cJSON *preassoc, *postassoc;
+
+    wifi_util_info_print(WIFI_WEBCONFIG,
+        "[POORNA CAC] %s:%d DECODE_CAC_OBJECT ENTRY vap='%s'\n",
+        __func__, __LINE__, vap_info->vap_name);
 
     decode_param_object(obj_array, "PreAssociationDeny", preassoc);
     if (decode_preassoc_cac_object(preassoc, &vap_info->u.bss_info.preassoc) != webconfig_error_none) {
