@@ -3016,29 +3016,34 @@ webconfig_error_t decode_radio_object(const cJSON *obj_radio, rdk_wifi_radio_t *
     radio_info->operatingClass = param->valuedouble;
 
 
-    // BasicDataTransmitRates
-    decode_param_integer(obj_radio, "BasicDataTransmitRates", param);
-    radio_info->basicDataTransmitRates = param->valuedouble;
-    /* FIX [POORNA]: An empty rate array in the blob decodes to bitmask 0.
-     * Passing 0 to the BCM HAL causes the driver to corrupt the beacon
-     * Supported Rates IE with 0x00 bytes ("Unknown Rate" in Wireshark).
-     * Restore standard 5GHz OFDM defaults (6,9,12,18,24,36,48,54 Mbps) instead. */
+     // BasicDataTransmitRates
+     decode_param_integer(obj_radio, "BasicDataTransmitRates", param);
+     radio_info->basicDataTransmitRates = param->valuedouble;
+    /* FIX: Empty rate array -> bitmask 0 -> BCM driver corrupts beacon
+     * Supported Rates IE. When empty blob arrives, restore full 5GHz OFDM set
+     * (8 rates) to force a clean buffer overwrite in firmware.
+     *
+     * ROOT CAUSE: BCM firmware keeps a rate buffer sized to the LAST configured
+     * set. If previous config had 4 rates (e.g. 24/36/48/54) and we pass 0 or
+     * only 1 rate, the driver retains old 4 entries and appends zeros:
+     *   b0 48 60 6c 00 00 00 00   <- corrupted 8-byte IE (seen in beacon_info)
+     * Passing all 8 OFDM rates forces a full buffer replacement:
+     *   b0 48 60 6c 12 24 30 36   <- clean 8-byte IE */
     if (radio_info->basicDataTransmitRates == 0) {
         wifi_util_info_print(WIFI_WEBCONFIG,
-            "[POORNA] %s:%d basicDataTransmitRates is 0 (empty blob), restoring 5GHz OFDM default 0x%x\n",
-            __func__, __LINE__, WIFI_BITRATE_6MBPS);
-        radio_info->basicDataTransmitRates = WIFI_BITRATE_6MBPS;
+            "[POORNA] %s:%d basicDataTransmitRates is 0, restoring full 5GHz OFDM defaults\n",
+            __func__, __LINE__);
+        radio_info->basicDataTransmitRates =
+            WIFI_BITRATE_6MBPS | WIFI_BITRATE_9MBPS | WIFI_BITRATE_12MBPS | WIFI_BITRATE_18MBPS |
+            WIFI_BITRATE_24MBPS | WIFI_BITRATE_36MBPS | WIFI_BITRATE_48MBPS | WIFI_BITRATE_54MBPS;
     }
-
-    // OperationalDataTransmitRates
-    decode_param_integer(obj_radio, "OperationalDataTransmitRates", param);
-    radio_info->operationalDataTransmitRates = param->valuedouble;
+     // OperationalDataTransmitRates
+     decode_param_integer(obj_radio, "OperationalDataTransmitRates", param);
+     radio_info->operationalDataTransmitRates = param->valuedouble;
     if (radio_info->operationalDataTransmitRates == 0) {
         wifi_util_info_print(WIFI_WEBCONFIG,
-            "[POORNA] %s:%d operationalDataTransmitRates is 0 (empty blob), restoring 5GHz OFDM default 0x%x\n",
-            __func__, __LINE__,
-            WIFI_BITRATE_6MBPS | WIFI_BITRATE_9MBPS | WIFI_BITRATE_12MBPS | WIFI_BITRATE_18MBPS |
-            WIFI_BITRATE_24MBPS | WIFI_BITRATE_36MBPS | WIFI_BITRATE_48MBPS | WIFI_BITRATE_54MBPS);
+            "[POORNA] %s:%d operationalDataTransmitRates is 0, restoring full 5GHz OFDM defaults\n",
+            __func__, __LINE__);
         radio_info->operationalDataTransmitRates =
             WIFI_BITRATE_6MBPS | WIFI_BITRATE_9MBPS | WIFI_BITRATE_12MBPS | WIFI_BITRATE_18MBPS |
             WIFI_BITRATE_24MBPS | WIFI_BITRATE_36MBPS | WIFI_BITRATE_48MBPS | WIFI_BITRATE_54MBPS;
