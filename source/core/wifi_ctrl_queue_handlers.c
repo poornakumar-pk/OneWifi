@@ -51,8 +51,47 @@
 
 static unsigned msg_id = 1000;
 
-#define RADIO_INDEX_DFS 1
 unsigned int temp_ch_list_5g[] = {36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140,144,149,153,157,161,165};
+
+static int get_dfs_radio_index(void)
+{
+    unsigned int num_radios = getNumberRadios();
+    unsigned int i;
+    wifi_radio_operationParam_t *radio_params = NULL;
+
+    for (i = 0; i < num_radios; i++) {
+        radio_params = (wifi_radio_operationParam_t *)get_wifidb_radio_map(i);
+        if (radio_params == NULL) {
+            continue;
+        }
+        if ((radio_params->band == WIFI_FREQUENCY_5_BAND ||
+             radio_params->band == WIFI_FREQUENCY_5L_BAND ||
+             radio_params->band == WIFI_FREQUENCY_5H_BAND) &&
+            radio_params->DfsEnabled) {
+            wifi_util_info_print(WIFI_CTRL, "POORNA %s: Found DFS radio at index=%d band=%d\n",
+                __FUNCTION__, i, radio_params->band);
+            return (int)i;
+        }
+    }
+
+    /* Fallback: return first 5G radio */
+    for (i = 0; i < num_radios; i++) {
+        radio_params = (wifi_radio_operationParam_t *)get_wifidb_radio_map(i);
+        if (radio_params == NULL) {
+            continue;
+        }
+        if (radio_params->band == WIFI_FREQUENCY_5_BAND ||
+            radio_params->band == WIFI_FREQUENCY_5L_BAND ||
+            radio_params->band == WIFI_FREQUENCY_5H_BAND) {
+            wifi_util_info_print(WIFI_CTRL, "POORNA %s: Fallback 5G radio at index=%d band=%d (DfsEnabled=0)\n",
+                __FUNCTION__, i, radio_params->band);
+            return (int)i;
+        }
+    }
+
+    wifi_util_error_print(WIFI_CTRL, "POORNA %s: No 5G radio found, defaulting to 1\n", __FUNCTION__);
+    return 1;
+}
 
 typedef enum {
     hotspot_vap_disable,
@@ -3336,13 +3375,15 @@ static int reset_radio_operating_parameters(void *args)
     return RETURN_OK;
 }
 
-int update_db_radar_detected(char *radar_detected_ch_time)
+int update_db_radar_detected(int radio_index, char *radar_detected_ch_time)
 {
     wifi_radio_operationParam_t *radio_params = NULL;
     wifi_mgr_t *g_wifidb;
     g_wifidb = get_wifimgr_obj();
 
-    radio_params = (wifi_radio_operationParam_t *)get_wifidb_radio_map(RADIO_INDEX_DFS);
+    radio_params = (wifi_radio_operationParam_t *)get_wifidb_radio_map(radio_index);
+    wifi_util_info_print(WIFI_CTRL,"POORNA %s: radio_index=%d radarDetected='%s' removing entry='%s'\n",
+        __FUNCTION__, radio_index, radio_params->radarDetected, radar_detected_ch_time);
 
     char *pos_ch_radar_time = strstr(radio_params->radarDetected, radar_detected_ch_time);
     size_t len_ch_radar_time = strlen(radar_detected_ch_time);
@@ -3370,8 +3411,11 @@ int dfs_nop_start_timer(void *args)
 {
     wifi_channel_change_event_t radio_channel_param;
     wifi_radio_operationParam_t *radio_params = NULL;
+    int dfs_radio_index = get_dfs_radio_index();
 
-    radio_params = (wifi_radio_operationParam_t *)get_wifidb_radio_map(RADIO_INDEX_DFS);
+    wifi_util_info_print(WIFI_CTRL, "POORNA %s: ENTER dfs_radio_index=%d\n", __FUNCTION__, dfs_radio_index);
+
+    radio_params = (wifi_radio_operationParam_t *)get_wifidb_radio_map(dfs_radio_index);
     memset(&radio_channel_param, 0, sizeof(radio_channel_param));
 
     char *str_r, *radar_detected_ch_time;
@@ -3380,9 +3424,12 @@ int dfs_nop_start_timer(void *args)
 
     radarDetected_temp[sizeof(radarDetected_temp) - 1] = '\0';
 
+    wifi_util_info_print(WIFI_CTRL, "POORNA %s: radarDetected='%s' radio_index=%d band=%d\n",
+        __FUNCTION__, radio_params->radarDetected, dfs_radio_index, radio_params->band);
+
     if (!strcmp(radarDetected_temp, " ") )
     {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d No radar detected \n", __func__, __LINE__);
+        wifi_util_error_print(WIFI_CTRL, "POORNA %s:%d No radar detected on radio_index=%d\n", __func__, __LINE__, dfs_radio_index);
         return RETURN_ERR;
     }
 
@@ -3392,9 +3439,9 @@ int dfs_nop_start_timer(void *args)
         unsigned int dfs_radar_channel, dfs_timer_secs = 0;
         wifi_channelBandwidth_t dfs_radar_ch_bw = 0;
         time_t time_now = time(NULL);
-        wifi_radio_feature_param_t *radio_feat = (wifi_radio_feature_param_t *)get_wifidb_radio_feat_map(RADIO_INDEX_DFS);
+        wifi_radio_feature_param_t *radio_feat = (wifi_radio_feature_param_t *)get_wifidb_radio_feat_map(dfs_radio_index);
         if (radio_feat == NULL) {
-            wifi_util_error_print(WIFI_CTRL,"%s: wrong index for radio map: %d\n",__FUNCTION__, RADIO_INDEX_DFS);
+            wifi_util_error_print(WIFI_CTRL, "POORNA %s: radio_feat NULL for radio_index=%d\n", __FUNCTION__, dfs_radio_index);
             return RETURN_ERR;
         }
 
@@ -3402,8 +3449,8 @@ int dfs_nop_start_timer(void *args)
         while(radar_detected_ch_time[i] != ',') {
             if(radar_detected_ch_time[i] == '\0') {
                 wifi_util_error_print(WIFI_CTRL,"%s:%d Invalid radarDetected:%s, Removing entry\n",__FUNCTION__, __LINE__, radio_params->radarDetected);
-                update_db_radar_detected(radar_detected_ch_time);
-                update_wifi_radio_config(RADIO_INDEX_DFS, radio_params, radio_feat);
+                update_db_radar_detected(dfs_radio_index, radar_detected_ch_time);
+                update_wifi_radio_config(dfs_radio_index, radio_params, radio_feat);
                 return RETURN_ERR;
             }
             i++;
@@ -3412,15 +3459,15 @@ int dfs_nop_start_timer(void *args)
         while(radar_detected_ch_time[i] != ',') {
             if(radar_detected_ch_time[i] == '\0') {
                 wifi_util_error_print(WIFI_CTRL,"%s: Invalid radarDetected:%s, Removing entry\n",__FUNCTION__, radio_params->radarDetected);
-                update_db_radar_detected(radar_detected_ch_time);
-                update_wifi_radio_config(RADIO_INDEX_DFS, radio_params, radio_feat);
+                update_db_radar_detected(dfs_radio_index, radar_detected_ch_time);
+                update_wifi_radio_config(dfs_radio_index, radio_params, radio_feat);
                 return RETURN_ERR;
             }
             i++;
         }
         radar_detected_time = atol(&radar_detected_ch_time[++i]);
 
-        radio_channel_param.radioIndex = RADIO_INDEX_DFS;
+        radio_channel_param.radioIndex = dfs_radio_index;
         radio_channel_param.event = WIFI_EVENT_DFS_RADAR_DETECTED;
         radio_channel_param.sub_event = WIFI_EVENT_RADAR_DETECTED;
         radio_channel_param.channel = dfs_radar_channel;
@@ -3429,11 +3476,15 @@ int dfs_nop_start_timer(void *args)
 
         dfs_timer_secs = ((time_now - radar_detected_time) < ((long long)radio_params->DFSTimer * 60) && (time_now > radar_detected_time)) ? (((long long)radio_params->DFSTimer * 60) - (time_now - radar_detected_time)) : 0;
         if(dfs_timer_secs == 0) {
-            update_db_radar_detected(radar_detected_ch_time);
-            update_wifi_radio_config(RADIO_INDEX_DFS, radio_params, radio_feat);
+            wifi_util_info_print(WIFI_CTRL, "POORNA %s: NOP expired for ch=%d radio_index=%d, clearing\n",
+                __FUNCTION__, dfs_radar_channel, dfs_radio_index);
+            update_db_radar_detected(dfs_radio_index, radar_detected_ch_time);
+            update_wifi_radio_config(dfs_radio_index, radio_params, radio_feat);
             wifi_util_dbg_print(WIFI_CTRL, "%s Radar event time-out for dfs_radar_channel:%d \n", __FUNCTION__, dfs_radar_channel);
         } else {
             bool is_nop_start_reboot = 1;
+            wifi_util_info_print(WIFI_CTRL, "POORNA %s: NOP active ch=%d radio_index=%d remaining_secs=%d\n",
+                __FUNCTION__, dfs_radar_channel, dfs_radio_index, dfs_timer_secs);
             wifi_util_dbg_print(WIFI_CTRL, "%s dfs_radar_channel:%d bw:%d radar_detected_time:%lld radar_detected_ch_time[%d]:%c dfs_timer_secs:%d \n", __FUNCTION__, dfs_radar_channel, dfs_radar_ch_bw, radar_detected_time, i, radar_detected_ch_time[i], dfs_timer_secs);
             process_channel_change_event(&radio_channel_param, is_nop_start_reboot, dfs_timer_secs);
         }
@@ -3455,6 +3506,7 @@ int dfs_nop_finish_timer(void *args)
     char *str_re, *radar_detected_ch_time;
     char radarDetected_temp[128];
     unsigned int ch_temp;
+    int dfs_radio_index = get_dfs_radio_index();
 
     if (args == NULL) {
         wifi_util_error_print(WIFI_CTRL, "%s:%d NULL Pointer\r\n", __func__, __LINE__);
@@ -3462,11 +3514,17 @@ int dfs_nop_finish_timer(void *args)
     }
 
     unsigned int nop_fin_dfs_ch = *(unsigned int *) args;
-    radio_params = (wifi_radio_operationParam_t *)get_wifidb_radio_map(RADIO_INDEX_DFS);
+    wifi_util_info_print(WIFI_CTRL, "POORNA %s: ENTER nop_fin_dfs_ch=%d dfs_radio_index=%d\n",
+        __FUNCTION__, nop_fin_dfs_ch, dfs_radio_index);
+
+    radio_params = (wifi_radio_operationParam_t *)get_wifidb_radio_map(dfs_radio_index);
     memset(&radio_channel_param, 0, sizeof(radio_channel_param));
     strncpy(radarDetected_temp, radio_params->radarDetected, sizeof(radarDetected_temp));
 
     radarDetected_temp[sizeof(radarDetected_temp) - 1] = '\0';
+
+    wifi_util_info_print(WIFI_CTRL, "POORNA %s: radarDetected='%s' radio_index=%d\n",
+        __FUNCTION__, radio_params->radarDetected, dfs_radio_index);
 
     radar_detected_ch_time = strtok_r(radarDetected_temp, ";", &str_re);
     while(radar_detected_ch_time != NULL) {
@@ -3479,14 +3537,15 @@ int dfs_nop_finish_timer(void *args)
             while(radar_detected_ch_time[i] != ',' && radar_detected_ch_time[i] != '\0') i++;
             dfs_radar_ch_bw = (radar_detected_ch_time[i] != '\0') ? (wifi_channelBandwidth_t) atoi(&radar_detected_ch_time[++i]) : radio_params->channelWidth;
 
-            radio_channel_param.radioIndex = RADIO_INDEX_DFS;
+            radio_channel_param.radioIndex = dfs_radio_index;
             radio_channel_param.event = WIFI_EVENT_DFS_RADAR_DETECTED;
             radio_channel_param.sub_event = WIFI_EVENT_RADAR_NOP_FINISHED;
             radio_channel_param.channel = nop_fin_dfs_ch;
             radio_channel_param.channelWidth = dfs_radar_ch_bw;
             radio_channel_param.op_class = radio_params->operatingClass;
 
-            wifi_util_dbg_print(WIFI_CTRL, "%s Nop_Finish for channel:%d BW:0x%x \n", __func__, nop_fin_dfs_ch, dfs_radar_ch_bw);
+            wifi_util_info_print(WIFI_CTRL, "POORNA %s: NOP_FINISHED ch=%d bw=0x%x radio_index=%d\n",
+                __FUNCTION__, nop_fin_dfs_ch, dfs_radar_ch_bw, dfs_radio_index);
             process_channel_change_event(&radio_channel_param, is_nop_start_reboot, dfs_timer_secs);
 
             break;
@@ -3514,6 +3573,11 @@ void process_channel_change_event(wifi_channel_change_event_t *ch_chg, bool is_n
     if (radio_params == NULL) {
         wifi_util_error_print(WIFI_CTRL,"%s: wrong index for radio map: %d\n",__FUNCTION__, ch_chg->radioIndex);
         return;
+    }
+
+    if (ch_chg->event == WIFI_EVENT_DFS_RADAR_DETECTED) {
+        wifi_util_info_print(WIFI_CTRL, "POORNA %s: DFS event radio_index=%d ch=%d sub_event=%d band=%d is_nop_start_reboot=%d dfs_timer_secs=%u\n",
+            __FUNCTION__, ch_chg->radioIndex, ch_chg->channel, ch_chg->sub_event, radio_params->band, is_nop_start_reboot, dfs_timer_secs);
     }
 
     radio_feat = (wifi_radio_feature_param_t *)get_wifidb_radio_feat_map(ch_chg->radioIndex);
@@ -3687,7 +3751,9 @@ void process_channel_change_event(wifi_channel_change_event_t *ch_chg, bool is_n
                     while(radar_detected_ch_time != NULL) {
                         ch_temp = atoi(radar_detected_ch_time);
                         if(ch_temp == ch_chg->channel) {
-                            if(update_db_radar_detected(radar_detected_ch_time) != RETURN_OK) {
+                            wifi_util_info_print(WIFI_CTRL, "POORNA %s: NOP_FINISHED from HAL ch=%d radio_index=%d\n",
+                                __FUNCTION__, ch_chg->channel, ch_chg->radioIndex);
+                            if(update_db_radar_detected(ch_chg->radioIndex, radar_detected_ch_time) != RETURN_OK) {
                                 wifi_util_error_print(WIFI_CTRL, "%s update_db_radar_detected returned error for channel:%d \n", __FUNCTION__, ch_chg->channel);
                             }
                             break;
