@@ -6844,7 +6844,7 @@ AccessPoint_GetParamBoolValue
     if( AnscEqualString(ParamName, "MLD_Apply", TRUE))
     {
         /* collect value */
-        *pBool = pcfg->u.bss_info.mld_info.common_info.mld_apply;
+        *pBool = WIFI_MLD_APPLY_GET(&pcfg->u.bss_info.mld_info.common_info);
         return TRUE;
     }
 
@@ -7534,13 +7534,13 @@ AccessPoint_SetParamBoolValue
 
     if( AnscEqualString(ParamName, "MLD_Apply", TRUE))
     {
-        if ( vapInfo->u.bss_info.mld_info.common_info.mld_apply == bValue )
+        if ( WIFI_MLD_APPLY_GET(&vapInfo->u.bss_info.mld_info.common_info) == bValue )
         {
             return TRUE;
         }
 
         /* save update to backup */
-        vapInfo->u.bss_info.mld_info.common_info.mld_apply = bValue;
+        WIFI_MLD_APPLY_SET(&vapInfo->u.bss_info.mld_info.common_info, bValue);
         set_dml_cache_vap_config_changed(instance_number - 1);
         return TRUE;
     }

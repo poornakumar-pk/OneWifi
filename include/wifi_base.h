@@ -99,6 +99,14 @@ extern "C" {
 #define UNDEFINED_MLD_ID 255
 #define MLD_UNIT_COUNT 8
 
+#ifdef WIFI_MLD_APPLY_SUPPORTED
+#define WIFI_MLD_APPLY_GET(common_info) ((common_info)->mld_apply)
+#define WIFI_MLD_APPLY_SET(common_info, value) ((common_info)->mld_apply = (value))
+#else
+#define WIFI_MLD_APPLY_GET(common_info) ((common_info)->mld_enable)
+#define WIFI_MLD_APPLY_SET(common_info, value) ((common_info)->mld_enable = (value))
+#endif
+
 #define PLAN_ID_LENGTH     38
 #define MAX_STEP_COUNT  32 /*Active Measurement Step Count */
 #define  MAC_ADDRESS_LENGTH  13
