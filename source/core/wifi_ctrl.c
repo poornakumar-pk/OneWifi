@@ -1759,7 +1759,6 @@ int init_wireless_interface_mac()
                 memcpy(wifi_vap_info->u.bss_info.mld_info.common_info.mld_addr, hal_vap_info_map->vap_array[j].u.bss_info.mld_info.common_info.mld_addr, sizeof(wifi_vap_info->u.bss_info.mld_info.common_info.mld_addr));
                 wifi_vap_info->u.bss_info.mld_info.common_info.mld_link_id = hal_vap_info_map->vap_array[j].u.bss_info.mld_info.common_info.mld_link_id;
                 wifi_vap_info->u.bss_info.mld_info.common_info.mld_id = hal_vap_info_map->vap_array[j].u.bss_info.mld_info.common_info.mld_id;
-                wifi_vap_info->u.bss_info.mld_info.common_info.mld_apply = hal_vap_info_map->vap_array[j].u.bss_info.mld_info.common_info.mld_apply;
 #endif
             }
         }
