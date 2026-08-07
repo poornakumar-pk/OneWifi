@@ -3706,6 +3706,13 @@ void process_channel_change_event(wifi_channel_change_event_t *ch_chg, bool is_n
     }
 
     wifi_radio_capabilities_t radio_capab = g_wifidb->hal_cap.wifi_prop.radiocap[ch_chg->radioIndex];
+    wifi_util_error_print(WIFI_CTRL,
+        "[XB10-2939-ONEWIFI-FLOW] process_channel_change_event ENTRY: radio:%d "
+        "oper_param.channel:%d oper_param.channelWidth:%d "
+        "event:%d sub_event:%d incoming_channel:%d incoming_channelWidth:%d op_class:%d "
+        "-- CORRECT incoming_channel=100 WRONG incoming_channel=44",
+        ch_chg->radioIndex, radio_params->channel, radio_params->channelWidth,
+        ch_chg->event, ch_chg->sub_event, ch_chg->channel, ch_chg->channelWidth, ch_chg->op_class);
     wifi_util_dbg_print(WIFI_CTRL,"%s:%d channel change on radio:%d old channel:%d new channel:%d channel change event type:%d \
                             radar_event_type %d op_class:%d\n", __func__, __LINE__, ch_chg->radioIndex, radio_params->channel,
                             ch_chg->channel, ch_chg->event, ch_chg->sub_event, ch_chg->op_class);
@@ -3762,21 +3769,45 @@ void process_channel_change_event(wifi_channel_change_event_t *ch_chg, bool is_n
             goto cleanup;
         }
 
+        wifi_util_error_print(WIFI_CTRL,
+            "[XB10-2939-ONEWIFI-FLOW] DFS guard check: channel:%d channelWidth:%d "
+            "-- guard passes ch44+160MHz (36<=44<52 BUT width==160MHz) = HAL 160MHz bug hole",
+            ch_chg->channel, ch_chg->channelWidth);
         if( ((ch_chg->channel >= 36 && ch_chg->channel < 52) && (ch_chg->channelWidth != WIFI_CHANNELBANDWIDTH_160MHZ )) || (ch_chg->channel > 144 && ch_chg->channel <= 165) ) {
+            wifi_util_error_print(WIFI_CTRL,
+                "[XB10-2939-ONEWIFI-FLOW] DFS guard REJECTED channel:%d channelWidth:%d -- goto cleanup",
+                ch_chg->channel, ch_chg->channelWidth);
             wifi_util_error_print(WIFI_CTRL,"%s: Wrong radar in radio_index:%d chan:%u \n",__FUNCTION__, ch_chg->radioIndex, ch_chg->channel);
             goto cleanup;
         }
+        wifi_util_error_print(WIFI_CTRL,
+            "[XB10-2939-ONEWIFI-FLOW] DFS guard PASSED channel:%d channelWidth:%d "
+            "-- processing continues (channel 44+160MHz bypasses guard: HAL bug)",
+            ch_chg->channel, ch_chg->channelWidth);
 
         switch (ch_chg->sub_event)
         {
             case WIFI_EVENT_RADAR_DETECTED :
                 chan_state = CHAN_STATE_DFS_NOP_START;
+                wifi_util_error_print(WIFI_CTRL,
+                    "[XB10-2939-ONEWIFI-FLOW] RADAR_DETECTED sub_event: radio:%d "
+                    "channel:%d channelWidth:%d oper_param.channel:%d "
+                    "-- about to store radarInfo.last_channel = channel (CORRECT=100 WRONG=44)",
+                    ch_chg->radioIndex, ch_chg->channel, ch_chg->channelWidth,
+                    radio_params->channel);
                 if((l_radio->radarInfo.timestamp != 0) && ((time_now - l_radio->radarInfo.timestamp) <= 2) && ((unsigned int)l_radio->radarInfo.last_channel == ch_chg->channel) ) {
                     /* Ignore the duplicate radar events for the same channel triggered within 2 seconds */
                     break;
                 }
                 unsigned int channel_index = 0;
                 l_radio->radarInfo.last_channel = ch_chg->channel;
+                wifi_util_error_print(WIFI_CTRL,
+                    "[XB10-2939-ONEWIFI-FLOW] radarInfo.last_channel STORED as %d "
+                    "timestamp:%ld num_detected:%d "
+                    "-- CORRECT=100 WRONG=44 -- OneWifi stores exactly what HAL delivered",
+                    l_radio->radarInfo.last_channel,
+                    (long)l_radio->radarInfo.timestamp,
+                    l_radio->radarInfo.num_detected);
                 l_radio->radarInfo.num_detected++;
                 l_radio->radarInfo.timestamp = (dfs_timer_secs == 0) ? (long int) time_now : (long int) (time_now - (radio_params->DFSTimer - dfs_timer_secs));
 
@@ -3849,6 +3880,11 @@ void process_channel_change_event(wifi_channel_change_event_t *ch_chg, bool is_n
         }
 
         if (ch_chg->sub_event == WIFI_EVENT_RADAR_DETECTED) {
+            wifi_util_error_print(WIFI_CTRL,
+                "[XB10-2939-ONEWIFI-FLOW] %s:%d DFS RADAR_DETECTED on ch %d "
+                "channelWidth:%d oper_param.channel:%d "
+                "-- CORRECT ch=100 WRONG ch=44 -- OneWifi is a VICTIM of HAL wrong channel",
+                __func__, __LINE__, ch_chg->channel, ch_chg->channelWidth, radio_params->channel);
             wifi_util_info_print(WIFI_CTRL,"%s:%d DFS RADAR_DETECTED on ch %d and will not be available for 30 mins\n",
                                  __func__, __LINE__, ch_chg->channel);
         } else if (ch_chg->sub_event == WIFI_EVENT_RADAR_NOP_FINISHED) {
@@ -3878,9 +3914,20 @@ void process_channel_change_event(wifi_channel_change_event_t *ch_chg, bool is_n
         inputChannelBlock = (ch_chg->channel - firstChannelInBand)/(channelGap*channelsInBlock);
         blockStartChannel = firstChannelInBand + (inputChannelBlock*channelGap*channelsInBlock);
         //blockEndChannel = firstChannelInBand + (inputChannelBlock*channelGap*channelsInBlock) + (channelGap*(channelsInBlock-1));
+        wifi_util_error_print(WIFI_CTRL,
+            "[XB10-2939-ONEWIFI-FLOW] NOP block arithmetic: "
+            "channel:%d firstChannelInBand:%d channelGap:%d channelsInBlock:%d "
+            "inputChannelBlock:%d blockStartChannel:%d "
+            "-- CORRECT blockStart=100 (channel=100) WRONG blockStart=36 (channel=44)",
+            ch_chg->channel, firstChannelInBand, channelGap, channelsInBlock,
+            inputChannelBlock, blockStartChannel);
         if ((blockStartChannel < 52) && (ch_chg->channelWidth == WIFI_CHANNELBANDWIDTH_160MHZ)) {
             blockStartChannel = 52;
             channelsInBlock -= 4;
+            wifi_util_error_print(WIFI_CTRL,
+                "[XB10-2939-ONEWIFI-FLOW] NOP block clamped to 52 (non-DFS 36-64 adjustment) "
+                "channelsInBlock adjusted to:%d -- this path should NOT occur when HAL fix applied",
+                channelsInBlock);
         }
 
         for (int i=0; i<radio_capab.channel_list[0].num_channels; i++)
@@ -4608,9 +4655,20 @@ void handle_hal_indication(wifi_ctrl_t *ctrl, void *data, unsigned int len,
         process_scan_results_event(data, len);
         break;
 
-    case wifi_event_hal_channel_change:
+    case wifi_event_hal_channel_change: {
+        wifi_channel_change_event_t *_chg = (wifi_channel_change_event_t *)data;
+        wifi_util_error_print(WIFI_CTRL,
+            "[XB10-2939-ONEWIFI-FLOW] handle_hal_indication: HAL delivered "
+            "radioIndex:%d event:%d sub_event:%d channel:%d channelWidth:%d "
+            "-- if event==DFS_RADAR and channel==44 on ch100/HT160 radio this is the HAL bug",
+            _chg ? _chg->radioIndex : -1,
+            _chg ? _chg->event      : -1,
+            _chg ? _chg->sub_event  : -1,
+            _chg ? _chg->channel    : -1,
+            _chg ? _chg->channelWidth : -1);
         process_channel_change_event(data, nop_start_reboot, dfs_timer_secs);
         break;
+    }
 
     case wifi_event_hal_csa_beacon_frame:
         process_csa_beacon_frame_event(data, len, ctrl);
