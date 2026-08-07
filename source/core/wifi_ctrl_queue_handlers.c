@@ -4661,11 +4661,8 @@ void handle_hal_indication(wifi_ctrl_t *ctrl, void *data, unsigned int len,
             "[XB10-2939-ONEWIFI-FLOW] handle_hal_indication: HAL delivered "
             "radioIndex:%d event:%d sub_event:%d channel:%d channelWidth:%d "
             "-- if event==DFS_RADAR and channel==44 on ch100/HT160 radio this is the HAL bug",
-            _chg ? _chg->radioIndex : -1,
-            _chg ? _chg->event      : -1,
-            _chg ? _chg->sub_event  : -1,
-            _chg ? _chg->channel    : -1,
-            _chg ? _chg->channelWidth : -1);
+            _chg->radioIndex, _chg->event, _chg->sub_event,
+            _chg->channel, _chg->channelWidth);
         process_channel_change_event(data, nop_start_reboot, dfs_timer_secs);
         break;
     }
