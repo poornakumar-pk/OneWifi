@@ -93,6 +93,11 @@ static int schedule_from_pending_map(wifi_app_t *wifi_app)
     }
 
     p_map_count = hash_map_count(p_map);
+    wifi_util_dbg_print(WIFI_APPS,
+        "TXB7-7233 LEVL %s:%d pending:%d active:%d max:%d\n",
+        __func__, __LINE__, p_map_count,
+        wifi_app->data.u.levl.num_current_sounding,
+        wifi_app->data.u.levl.max_num_csi_clients);
     if ((p_map_count > 0) && (wifi_app->data.u.levl.num_current_sounding < wifi_app->data.u.levl.max_num_csi_clients)) {
         levl_sc_data = (levl_sched_data_t *)hash_map_get_first(p_map);
         while(levl_sc_data != NULL)
@@ -419,6 +424,10 @@ static int process_levl_sounding_timeout(timeout_data_t *t_data)
         return -1;
     }
 
+    wifi_util_dbg_print(WIFI_APPS,
+        "TXB7-7233 LEVL %s:%d timeout ap:%d mac:%02x..%02x\n",
+        __func__, __LINE__, t_data->ap_index, t_data->mac_addr[0], t_data->mac_addr[5]);
+
     levl_sc_data = (levl_sched_data_t *)hash_map_get(curr_map, mac_str);
     if (levl_sc_data != NULL) {
         //Disable CSI Sounding.
@@ -452,6 +461,9 @@ static int schedule_mac_for_sounding(int ap_index, mac_address_t mac_address, in
     int curr_map_count = 0;
 
     to_mac_str((unsigned char *)mac_address, mac_str);
+    wifi_util_dbg_print(WIFI_APPS,
+        "TXB7-7233 LEVL %s:%d schedule ap:%d duration:%d interval:%d mac:%02x..%02x\n",
+        __func__, __LINE__, ap_index, duration, interval, mac_address[0], mac_address[5]);
     wifi_app = get_app_by_inst(apps_mgr, wifi_app_inst_levl);
     if (wifi_app == NULL) {
         wifi_util_error_print(WIFI_APPS,"%s:%d NULL wifi_app pointer\n", __func__, __LINE__);
@@ -569,6 +581,9 @@ void levl_csi_publish(mac_address_t mac_address, wifi_csi_dev_t *csi_dev_data)
     csi_data_length = sizeof(wifi_csi_data_t);
     memcpy((header + curr_length), &csi_data_length, sizeof(unsigned int));
     int buffer_size = CSI_HEADER_SIZE + sizeof(wifi_csi_data_t);
+    wifi_util_dbg_print(WIFI_APPS,
+        "TXB7-7233 LEVL %s:%d publish mac:%02x..%02x fifo:%d\n",
+        __func__, __LINE__, mac_address[0], mac_address[5], wifi_app->data.u.levl.csi_over_fifo);
     if (wifi_app->data.u.levl.csi_over_fifo == false) {
         strncpy(eventName, "Device.WiFi.X_RDK_CSI_LEVL.data", sizeof(eventName) - 1);
         // Publish using new API
@@ -634,7 +649,7 @@ int process_levl_csi(wifi_app_t *app, wifi_csi_dev_t *csi_data)
             return RETURN_OK;
         }
     }
-    wifi_util_dbg_print(WIFI_APPS, "%s: Levl CSI data received - MAC  %02x:%02x:%02x:%02x:%02x:%02x\n",__func__, mac_addr[0], mac_addr[1],
+    wifi_util_dbg_print(WIFI_APPS, "TXB7-7233 LEVL %s: CSI data received - MAC  %02x:%02x:%02x:%02x:%02x:%02x\n",__func__, mac_addr[0], mac_addr[1],
                                                         mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
     //publish only when interval reaches apps->data.u.levl.publish_interval
     levl_sched_data_t *levl_sc_data = NULL;
@@ -969,6 +984,8 @@ int levl_event_speed_test(wifi_app_t *app, wifi_event_subtype_t sub_type, void *
     }
     pthread_mutex_lock(&app->data.u.levl.lock);
     if (speed_test_data->speed_test_running == 1) {
+        wifi_util_dbg_print(WIFI_APPS,
+            "TXB7-7233 LEVL %s:%d speed-test pause\n", __func__, __LINE__);
         app->data.u.levl.paused = true;
         process_csi_stop_levl(app);
 
@@ -981,6 +998,8 @@ int levl_event_speed_test(wifi_app_t *app, wifi_event_subtype_t sub_type, void *
             scheduler_update_timer_task_interval(ctrl->sched, app->data.u.levl.sched_handler_id, (app->data.u.levl.speed_test_timeout)*1000);
         }
     } else if (speed_test_data->speed_test_running == 5) {
+        wifi_util_dbg_print(WIFI_APPS,
+            "TXB7-7233 LEVL %s:%d speed-test resume\n", __func__, __LINE__);
         if (app->data.u.levl.paused == true) {
             process_csi_start_levl(app);
         }
@@ -1785,7 +1804,7 @@ int levl_init(wifi_app_t *app, unsigned int create_flag)
     if (app_init(app, create_flag) != 0) {
         return RETURN_ERR;
     }
-    wifi_util_info_print(WIFI_APPS, "%s:%d: Init Levl\n", __func__, __LINE__);
+    wifi_util_dbg_print(WIFI_APPS, "TXB7-7233 LEVL %s:%d init complete\n", __func__, __LINE__);
 
     wifi_app_t *csi_app = NULL;
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
