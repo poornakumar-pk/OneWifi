@@ -2467,6 +2467,13 @@ int webconfig_hal_radio_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t
             radio_param_config_changed_event_logging(&mgr_radio_data->oper,&radio_data->oper,radio_data->name);
             print_wifi_hal_radio_data(WIFI_WEBCONFIG, "old", i, &mgr_radio_data->oper);
             print_wifi_hal_radio_data(WIFI_WEBCONFIG, "New", i, &radio_data->oper);
+            wifi_util_info_print(WIFI_MGR,
+                "%s:%d: CHANNEL_CHANGE_REQUEST radio=%d name=%s old_channel=%d new_channel=%d "
+                "old_width=%d new_width=%d old_auto=%d new_auto=%d\n",
+                __func__, __LINE__, mgr_radio_data->vaps.radio_index, radio_data->name,
+                mgr_radio_data->oper.channel, radio_data->oper.channel,
+                mgr_radio_data->oper.channelWidth, radio_data->oper.channelWidth,
+                mgr_radio_data->oper.autoChannelEnabled, radio_data->oper.autoChannelEnabled);
 
 // Optimizer will try to change, channel on current STA along with parent change, So it shouldn't skip for pods. 
             if (ctrl->network_mode == rdk_dev_mode_type_ext) {
@@ -2505,6 +2512,10 @@ int webconfig_hal_radio_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t
             }
 
             ret = wifi_hal_setRadioOperatingParameters(mgr_radio_data->vaps.radio_index, &radio_data->oper);
+            wifi_util_info_print(WIFI_MGR,
+                "%s:%d: CHANNEL_CHANGE_RESULT radio=%d requested_channel=%d ret=%d\n",
+                __func__, __LINE__, mgr_radio_data->vaps.radio_index,
+                radio_data->oper.channel, ret);
 
             if (ret != RETURN_OK) {
                 wifi_util_error_print(WIFI_MGR, "%s:%d: failed to apply\n", __func__, __LINE__);
@@ -2651,6 +2662,13 @@ int webconfig_hal_single_radio_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded
             radio_data->name);
         print_wifi_hal_radio_data(WIFI_WEBCONFIG, "old", radio_index, &mgr_radio_data->oper);
         print_wifi_hal_radio_data(WIFI_WEBCONFIG, "New", radio_index, &radio_data->oper);
+        wifi_util_info_print(WIFI_MGR,
+            "%s:%d: CHANNEL_CHANGE_REQUEST radio=%d name=%s old_channel=%d new_channel=%d "
+            "old_width=%d new_width=%d old_auto=%d new_auto=%d\n",
+            __func__, __LINE__, mgr_radio_data->vaps.radio_index, radio_data->name,
+            mgr_radio_data->oper.channel, radio_data->oper.channel,
+            mgr_radio_data->oper.channelWidth, radio_data->oper.channelWidth,
+            mgr_radio_data->oper.autoChannelEnabled, radio_data->oper.autoChannelEnabled);
 
         // Optimizer will try to change, channel on current STA along with parent change, So it
         // shouldn't skip for pods.
@@ -2697,6 +2715,10 @@ int webconfig_hal_single_radio_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded
 
         ret = wifi_hal_setRadioOperatingParameters(mgr_radio_data->vaps.radio_index,
             &radio_data->oper);
+        wifi_util_info_print(WIFI_MGR,
+            "%s:%d: CHANNEL_CHANGE_RESULT radio=%d requested_channel=%d ret=%d\n",
+            __func__, __LINE__, mgr_radio_data->vaps.radio_index,
+            radio_data->oper.channel, ret);
 
         if (ret != RETURN_OK) {
             wifi_util_error_print(WIFI_MGR, "%s:%d: failed to apply\n", __func__, __LINE__);
