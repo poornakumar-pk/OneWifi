@@ -4746,6 +4746,11 @@ wifi_region_t get_region_from_countrycode(wifi_countrycode_type_t countryCode)
     }
 }
 
+BOOL is_etsi_regulatory_country(wifi_countrycode_type_t country_code)
+{
+    return get_region_from_countrycode(country_code) == WIFI_REGION_EU;
+}
+
 /* Function to update the operating classes in the oper structure */
 int update_radio_operating_classes(wifi_radio_operationParam_t *oper)
 {
