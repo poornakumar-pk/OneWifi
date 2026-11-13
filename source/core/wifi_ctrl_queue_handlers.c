@@ -3873,9 +3873,7 @@ void process_channel_change_event(wifi_channel_change_event_t *ch_chg, bool is_n
                 chan_state = CHAN_STATE_DFS_NOP_FINISHED;
                 break;
             case WIFI_EVENT_RADAR_PRE_CAC_EXPIRED :
-                /* BCM43684 fires this per 20MHz sub-band when vacating a DFS channel.
-                 * Default to nop_finished; the loop guard below preserves cac_completed
-                 * for channels that passed full regulatory CAC (SHARMAN-4249). */
+                /* Expired pre-CAC is not applicable in ETSI; elsewhere the channel needs CAC again. */
                 wifi_util_dbg_print(WIFI_CTRL,
                     "%s:%d PRE_CAC_EXPIRED: radio:%d ch:%d bw:%d\n",
                     __func__, __LINE__, ch_chg->radioIndex, ch_chg->channel, ch_chg->channelWidth);
@@ -3933,8 +3931,9 @@ void process_channel_change_event(wifi_channel_change_event_t *ch_chg, bool is_n
                             "%s:%d Channel %d already in NOP_START, ignoring state change to %d from radar subtype %d\n",
                             __func__, __LINE__, ch_chg->channel, chan_state, ch_chg->sub_event);
                     } else if (ch_chg->sub_event == WIFI_EVENT_RADAR_PRE_CAC_EXPIRED &&
-                               radio_params->channel_map[j].ch_state == CHAN_STATE_DFS_CAC_COMPLETED) {
-                        /* SHARMAN-4249: preserve cac_completed -- BCM43684 fires PRE_CAC_EXPIRED per 20MHz subband on DFS channel leave */
+                               radio_params->channel_map[j].ch_state == CHAN_STATE_DFS_CAC_COMPLETED &&
+                               is_etsi_regulatory_country(radio_params->countryCode)) {
+                        /* ETSI pre-CAC remains valid after leaving the channel. */
                         wifi_util_dbg_print(WIFI_CTRL,
                             "%s:%d PRE_CAC_EXPIRED on ch %d: preserving cac_completed, not resetting to nop_finished\n",
                             __func__, __LINE__, ch_chg->channel);
